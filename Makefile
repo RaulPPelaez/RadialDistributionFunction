@@ -1,6 +1,13 @@
 
 
 all:
-	nvcc  -arch=sm_52 -std=c++11 -O3 rdf.cu -o rdf
+	$(MAKE) -C src
+
+install: all
+	mkdir -p ~/bin
+	mv bin/rdf ~/bin/
+
+test: all
+	$(MAKE) -C test
 clean:
-	rm -f rdf
+	rm -f bin/rdf src/main.o
