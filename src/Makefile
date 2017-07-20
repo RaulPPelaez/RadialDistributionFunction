@@ -2,7 +2,7 @@
 
 all: main.o
 	mkdir -p ../bin
-	nvcc  -arch=sm_52 -std=c++11 -O3 $^ -o ../bin/rdf
+	nvcc -g  -arch=sm_52 -std=c++11 -O3 $^ -o ../bin/rdf
 
 depend: .depend
 

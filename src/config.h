@@ -11,16 +11,19 @@
 namespace gdr{
   
   struct Configuration{
-    enum device{GPU, CPU};
+    enum device{GPU, CPU, none};
     enum dimensionality{D3, D2, qD2};
     //Default config
     dimensionality dimension=D3;
-    device deviceMode=GPU;
+    device deviceMode=none;
 #ifdef SINGLE_PRECISION
     bool doublePrecision = false; 
 #else
     bool doublePrecision = true;
 #endif
+
+    int outputDecimals=5;
+    
     int numberParticles = -1;
     real3 boxSize = {0,0,0};
     real maxDistance = 0;
@@ -53,6 +56,7 @@ namespace gdr{
       if(strcmp(argv[i], "-N")==0)               config.numberParticles = atoi(argv[i+1]);
       if(strcmp(argv[i], "-nbins")==0)           config.numberBins = atoi(argv[i+1]);
       if(strcmp(argv[i], "-Nsnapshots")==0)      config.numberSnapshots = atoi(argv[i+1]);
+      if(strcmp(argv[i], "-outputDecimals")==0)  config.outputDecimals = atoi(argv[i+1]);
       if(strcmp(argv[i], "-dim")==0){
 	if(strcmp(argv[i+1], "3D")==0)           config.dimension = Configuration::dimensionality::D3;
 	if(strcmp(argv[i+1], "2D")==0)           config.dimension = Configuration::dimensionality::D2;
@@ -62,6 +66,7 @@ namespace gdr{
       if(strcmp(argv[i], "-device")==0){
 	if(strcmp(argv[i+1], "GPU")==0)          config.deviceMode = Configuration::device::GPU;
 	else if(strcmp(argv[i+1], "CPU")==0)     config.deviceMode = Configuration::device::CPU;
+	else if(strcmp(argv[i+1], "auto")==0){}
 	else{ cerr<<"ERROR: Selected an invalid device"<<endl; print_help();}
 	
       }
@@ -143,9 +148,13 @@ namespace gdr{
     printf(" -dim [=3] \n");
     printf(" Dimensionality of the input positions. Affects how the histogram is normalized to compute the rdf. \n");
     printf(" \n");
-    printf(" -device [=GPU] \n");
-    printf(" Switch between GPU/CPU implementations of the algorithm. Currently only GPU is implemented \n");
+    printf(" -device [=auto] \n");
+    printf(" Switch between GPU/CPU implementations of the algorithm. By default rdf chooses the best according to N\n");
     printf(" \n");
+    printf(" -outputDecimals [=5] \n");
+    printf(" Number of decimals in the output file, set through cout<<setprecision() \n");
+    printf(" \n");
+
     printf("FILE FORMAT \n");
     printf(" The file must have at least \"dim\" columns (the rest will be ignored) and each snapshot (including the first) \n");
     printf(" must be preceded by a line (no matter the content as long as it is a single line). See example. \n");

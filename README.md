@@ -5,7 +5,17 @@ rdf -  Computes the Radial Distribution Function (RDF) of a group of positions i
 
 ## COMPILE WITH  
 
-$ nvcc  -arch=sm_52 -std=c++11 -O3 rdf.cu  
+```
+$ make
+```
+You may have to change the Makefile to adequate it to the CUDA target architechture, currently set to -arch=sm_52
+
+Use:
+```
+$ make test 
+```
+
+To compile and run several test using random numbers, the resulting rdf will be compared between CPU and GPU implementations. Which should be numerically identical.
 
 ## SYNOPSYS  
 
@@ -36,9 +46,15 @@ rdf [OPTIONS]... [FILE]...
    -dim [=3]  
        Dimensionality of the input positions. Affects how the histogram is normalized to compute the rdf.  
 
-   -device [=GPU]  
-  
+   -device [=auto]  
+       Switch between GPU/CPU implementations of the algorithm. By default rdf chooses the best according to N  
+	
+   -outputDecimals [=5]  
+	   Number of decimals in the output file, set through cout<<setprecision()  
+    
 
+   
+   
  ## FILE FORMAT   
    The file must have at least "dim" columns (the rest will be ignored) and each snapshot (including the first)  
    must be preceded by a line (no matter the content as long as it is a single line). See example.  

@@ -84,7 +84,7 @@ namespace gdr{
     real binSize = rcut/numberBins;
 
     if(posGPU.size() != N) posGPU.resize(N);
-    if(pairDistanceCountGPU.size() != N) pairDistanceCountGPU.resize(N, 0);
+    if(pairDistanceCountGPU.size() != numberBins) pairDistanceCountGPU.resize(numberBins, 0);
 
     //Get raw pointers to device memory
     auto posGPUPtr=thrust::raw_pointer_cast(posGPU.data());

@@ -1,2 +1,2 @@
-N=2e6;pos=rand(N,3);
-disp(pos)
+N=1e6;
+disp(rand(N,3))

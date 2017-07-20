@@ -62,14 +62,14 @@ namespace gdr{
       for(uint counter = 0; counter<blockDim.x; counter++){
 	if(!active) break; /*An out of bounds thread must be masked*/
 	int cur_j = tile*blockDim.x+counter; 
-	if(cur_j<N && cur_j != id){/*If the current particle exists, compute and accumulate*/
+	if(cur_j<N && cur_j>id && cur_j != id){/*If the current particle exists, compute and accumulate*/
 	  /*Compute and accumulate the current pair*/
 	  real3 rij = pi - shPos[counter];
 	  box.apply_pbc(rij);
 	  real r = sqrtf(dot(rij, rij));
 	  if(r<rcut){
-	    int bin = floor(r/binSize);
-	    atomicAdd(&pairDistanceCount[bin], 1);
+	    int bin = floorf(r/binSize);
+	    atomicAdd(&pairDistanceCount[bin], 2);
 	  }
 	
 	}
