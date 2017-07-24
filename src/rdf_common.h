@@ -32,15 +32,15 @@ namespace gdr{
 
     
     double invNormalization = 1.0/normalization;
-    for(int i=1; i<=config.numberBins; i++){
-      double R = (i-0.5)*binSize;
+    for(int i=0; i<config.numberBins; i++){
+      double R = (i+0.5)*binSize;
       double invR =1.0/R;
       double count2rdf = invR*invNormalization;
       if(config.dimension == Configuration::dimensionality::D3) count2rdf *= invR;
-      ullint count = pairDistanceCount[i-1];
-      rdf[i-1] = count*count2rdf;
+      ullint count = pairDistanceCount[i];
+      rdf[i] = count*count2rdf;
       
-      std[i-1] = sqrt(count*(1.0-count/pow(N*numberProcessedSnapshots, 2)))*count2rdf;
+      std[i] = sqrt(count*(1.0-count/pow(N*numberProcessedSnapshots, 2)))*count2rdf;
 
     }
   }

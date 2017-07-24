@@ -59,8 +59,9 @@ namespace gdr{
       if(strcmp(argv[i], "-outputDecimals")==0)  config.outputDecimals = atoi(argv[i+1]);
       if(strcmp(argv[i], "-dim")==0){
 	if(strcmp(argv[i+1], "3D")==0)           config.dimension = Configuration::dimensionality::D3;
-	if(strcmp(argv[i+1], "2D")==0)           config.dimension = Configuration::dimensionality::D2;
-	if(strcmp(argv[i+1], "q2D")==0)          config.dimension = Configuration::dimensionality::qD2;
+	else if(strcmp(argv[i+1], "2D")==0)      config.dimension = Configuration::dimensionality::D2;
+	else if(strcmp(argv[i+1], "q2D")==0)     config.dimension = Configuration::dimensionality::qD2;
+	else{ cerr<<"ERROR: INVALID DIMENSIONALITY IN -dim!!!"<<endl; print_help(); exit(1);}
 
       }
       if(strcmp(argv[i], "-device")==0){
@@ -145,8 +146,9 @@ namespace gdr{
     printf(" -Nsnapshots  \n");
     printf(" Number of snapshots in the file, a snapshot must be separated from the next with a single line \n");
     printf(" \n");
-    printf(" -dim [=3] \n");
-    printf(" Dimensionality of the input positions. Affects how the histogram is normalized to compute the rdf. \n");
+    printf(" -dim [=3D] \n");
+    printf(" Dimensionality of the input positions. Affects how the histogram is normalized to compute the rdf.\n");
+    printf(" Can be 3D, 2D or q2D (treat as 3D, but normalize as 2D)\n");
     printf(" \n");
     printf(" -device [=auto] \n");
     printf(" Switch between GPU/CPU implementations of the algorithm. By default rdf chooses the best according to N\n");

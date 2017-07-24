@@ -13,5 +13,5 @@ depend: .depend
 include .depend
 
 %.o:%.cu
-	nvcc  -arch=sm_52 -std=c++11 -O3 $< -c -o $@
+	nvcc -g  -arch=sm_52 -std=c++11 -O3 $< -c -o $@
 
