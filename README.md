@@ -43,9 +43,10 @@ rdf [OPTIONS]... [FILE]...
    -Nsnapshots   
        Number of snapshots in the file, a snapshot must be separated from the next with a single line  
 
-   -dim [=3]  
+   -dim [=3D]  
        Dimensionality of the input positions. Affects how the histogram is normalized to compute the rdf.  
-
+      Can be 3D, 2D or q2D (treat as 3D, but normalize as 2D)
+	  
    -device [=auto]  
        Switch between GPU/CPU implementations of the algorithm. By default rdf chooses the best according to N  
 	
