@@ -64,8 +64,8 @@ namespace gdr{
 	int cur_j = tile*blockDim.x+counter; 
 	if(cur_j<N && cur_j>id && cur_j != id){/*If the current particle exists, compute and accumulate*/
 	  /*Compute and accumulate the current pair*/
-	  real3 rij = pi - shPos[counter];
-	  box.apply_pbc(rij);
+	  real3 rij = box.apply_pbc(pi - shPos[counter]);
+	  
 	  real r = sqrtf(dot(rij, rij));
 	  if(r<rcut){
 	    int bin = floorf(r/binSize);

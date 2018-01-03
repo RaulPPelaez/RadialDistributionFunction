@@ -22,39 +22,6 @@ namespace gdr{
       return true;
       
     }
-    int pbc_cell(int cell, int ncells){
-      if(cell==0)              return ncells;
-      else if(cell==ncells+1)  return 1;
-      else                      return cell;            
-    }
-
-    int3 pbc_cells(int3 cell){
-      int3 cellOut;
-      cellOut.x = pbc_cell(cell.x, numberCells.x);
-      cellOut.y = pbc_cell(cell.y, numberCells.y);
-      cellOut.z = pbc_cell(cell.z, numberCells.z);
-      return cellOut;
-    }
-
-    template<class vecType>
-    int getCellIndex(vecType pos){
-      int3 cell;
-      return getCellIndex(pos, cell);
-    }
-    template<class vecType>
-    int getCellIndex(vecType pos, int3 &cell){
-      int icell; //Cell index for head
-      //We make use of the fact that pos is between -0.5 and 0.5.
-      //Thanks to integer arithmetics (C++ truncates to transform float to int)
-      //cell[i] is in the range 1,2,...ncells
-      cell.x = 1 + int((0.5 + pos.x)*numberCells.x);
-      cell.y = 1 + int((0.5 + pos.y)*numberCells.y);
-      cell.z = 1 + int((0.5 + pos.z)*numberCells.z);
-      //This is a little bit tricky, we have to transform a 3D coordinate (cell) to a 1D one (icell)
-      //It is the same that with the position storage. See the notes!
-      icell=cell.x+(cell.y-1)*numberCells.x+(cell.z-1)*numberCells.x*numberCells.y;
-      return icell;
-    }
     template<class vecType>
     void makeList(vecType *pos, const Configuration &config){
       
@@ -66,6 +33,7 @@ namespace gdr{
 
       int3 ncells = make_int3(config.boxSize/rcut +0.5);
       if(ncells.z==0) ncells.z= 1;
+      Grid grid(box, ncells);
       this->numberCells = ncells;
       int totalCells = ncells.x*ncells.y*ncells.z+1;
       if(head.size() != totalCells ) head.resize(totalCells);
@@ -79,12 +47,12 @@ namespace gdr{
       //We go from 1 to N, but address the particles as 0 to N-1.
       for(int i=1; i<=N; i++){
 	/*Save the (i-1)th position to tempos*/
-	temppos = make_real3(pos[i-1]);
+	temppos =   box.apply_pbc(make_real3(pos[i-1]));
 	/*And reduce it to the primary box*/
-	box.apply_pbc(temppos);
+
 	/*Compute the cell coordinates of particle i-1, see getcell below!*/
 	/*Compute the head index of cell[] (Look in the notes!)*/
-	icell = getCellIndex(temppos);
+	icell = grid.getCellIndex(grid.getCell(temppos));
 	/*Add particle to head and list (Look in the notes!)*/
 	list[i] = head[icell];
 	head[icell] = i;
@@ -95,16 +63,16 @@ namespace gdr{
     void transverseList(const vectorType* pos, PairFunctor &transverser, const Configuration &config){
       int N = config.numberParticles;
       Box3D box(config.boxSize);
-      
+      Grid grid(box, numberCells);
       for(int i=0; i<N;i++){
 	/*Save the index particle position*/
 	real3 posindex;//Temporal position storage
-	posindex =  make_real3(pos[i]);
 	/*Get it to the primary box*/
-	box.apply_pbc(posindex);
+	posindex =  box.apply_pbc(make_real3(pos[i]));
+
 
 	int3 cell;   //Cell coordinates of the index particle
-	getCellIndex(posindex, cell);
+	cell = grid.getCell(posindex);
 
 	int j; //Index of neighbour particle
 	int jcel, jcelx, jcely, jcelz; //cell coordinates and cell index for particle j
@@ -116,13 +84,13 @@ namespace gdr{
 	/*For every neighbouring cell (26 cells in 3D)*/
 	for(int jz=minZcell; jz<=maxZcell;jz++){
 	  /*The neighbour cell must take into account pbc! (see pbc_cells!)*/
-	  jcelz = pbc_cell(jz,numberCells.z);
+	  jcelz = grid.pbc_cell_coord<2>(jz);
 	  for(int jx=cell.x-1; jx<=cell.x+1;jx++){
-	    jcelx = pbc_cell(jx,numberCells.x);
+	    jcelx = grid.pbc_cell_coord<0>(jx);
 	    for(int jy=cell.y-1; jy<=cell.y+1;jy++){
-	      jcely = pbc_cell(jy,numberCells.y);
+	      jcely = grid.pbc_cell_coord<1>(jy);
 	      //See getcell!
-	      jcel =jcelx + (jcely-1)*numberCells.x+(jcelz-1)*numberCells.y*numberCells.x;
+	      jcel = grid.getCellIndex(make_int3(jcelx, jcely, jcelz));
 	      /*Get the highest index particle in cell jcel*/
 	      j = head[jcel];
 	      /*If there is no particles go to the next cell*/

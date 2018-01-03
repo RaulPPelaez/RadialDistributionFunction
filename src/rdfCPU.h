@@ -82,8 +82,8 @@ namespace gdr{
     }
     inline void operator()(int index_i, int index_j){
       if(index_i > index_j){
-	real3 rij = make_real3(pos[index_i]) - make_real3(pos[index_j]);
-	box.apply_pbc(rij);
+	real3 rij = box.apply_pbc(make_real3(pos[index_i]) - make_real3(pos[index_j]));
+	
 	real r = sqrtf(dot(rij, rij));
 	if(r<rcut){
 
