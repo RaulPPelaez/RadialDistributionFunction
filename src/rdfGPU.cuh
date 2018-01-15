@@ -92,7 +92,7 @@ namespace gdr{
     int nx = int(L.x/rcut + 0.5);
     int ny = int(L.y/rcut + 0.5);
     int nz = int(L.z/rcut + 0.5);
-    if(nx<3 && ny<3 && nz<3){
+    if(nx<3 && ny<3 && nz<3 && config.numberParticles > 1e4){
       this->computeWithNBody(posGPUPtr, config);
     }
     else{

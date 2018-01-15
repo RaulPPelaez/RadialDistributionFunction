@@ -92,7 +92,7 @@ int main(int argc, char *argv[]){
 
   //If device is automatic, use this rule of hand to select which one to use
   if(config.deviceMode == Configuration::device::none){
-    if(config.numberParticles > 2e3) config.deviceMode = Configuration::device::GPU;
+    if(config.numberParticles > 500) config.deviceMode = Configuration::device::GPU;
     else config.deviceMode = Configuration::device::CPU;
   }
   //InputParse handles the transformation of a line from the input file to numbers
