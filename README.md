@@ -2,13 +2,21 @@
 
 ## NAME   
 rdf -  Computes the Radial Distribution Function (RDF) of a group of positions in a file, averages it for all snapshots in the file.  
-
+rdf can compute in 4 modes:  
+	* GPU  
+	  - Nbody  
+	  - Neighbour list  
+	* CPU  
+	  - Nbody  
+	  - Neighbour list  
+	  
+rdf will choose a between GPU/CPU according to the number of particles (unless specified with -device) and will choose NBody/Neighbour list according to the number of particles and the factor L/rcut.  
 ## COMPILE WITH  
 
 ```
 $ make
 ```
-You may have to change the Makefile to adequate it to the CUDA target architechture, currently set to -arch=sm_52
+You may have to change the Makefile to adequate it to the CUDA target architechture, currently set to -arch=sm_35
 
 Use:
 ```
@@ -61,7 +69,8 @@ rdf [OPTIONS]... [FILE]...
    must be preceded by a line (no matter the content as long as it is a single line). See example.  
 
 
-## EXAMPLES:
+## EXAMPLES:  
+
 ```
 ---pos.dat----
 #
@@ -77,4 +86,4 @@ rdf [OPTIONS]... [FILE]...
 $ cat pos.dat | rdf -N 3 -Nsnapshots 2 -L 25 -nbins 10 -rcut 2 > rdf.dat
 ```
 rdf will take the file as 2 snapshots with the positions of 3 particles in 3D.
-Switch between GPU/CPU implementations of the algorithm. Currently only GPU is implemented
+
