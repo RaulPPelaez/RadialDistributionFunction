@@ -1,14 +1,16 @@
 
 
-
+EXE=../bin/rdf
 all:
-	octave -qf random_positions.m > inipos 2> /dev/null
 
-	bash test.bash ../bin/rdf  "-device CPU"
+	seq 1 1e7 | awk '{print rand()*10, rand()*10, rand()*10}' > inipos
+	echo "CPU: ">>timing.dat
+	bash test.bash $(EXE)  "-device CPU"
 	mkdir -p CPU
 	mv *gdr CPU
 
-	bash test.bash ../bin/rdf  "-device GPU"
+	echo "GPU: ">>timing.dat
+	bash test.bash $(EXE)  "-device GPU"	
 	mkdir -p GPU
 	mv *gdr GPU
 	rm -f inipos octave-workspace
@@ -16,4 +18,4 @@ all:
 	bash checkResults.bash
 
 clean:
-	rm -rf CPU GPU 
+	rm -rf CPU GPU timing.dat

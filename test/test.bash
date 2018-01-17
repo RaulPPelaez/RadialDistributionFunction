@@ -15,14 +15,14 @@ echo "A q2D distribution"
 echo "$exe $args  -dim q2D > q2D.gdr"
 cat inipos |
     awk '{print $1, $2, $3*0.1}' |
-    /usr/bin/time  -p sh -c "$exe $args  -dim q2D > q2D.gdr"
+    { /usr/bin/time  -p sh -c "$exe $args  -dim q2D > q2D.gdr"; }  2>&1 | paste -sd" " | awk '{print "q2D :", $0}' >> timing.dat
 
 echo "A true 2D random distribution"
 cat inipos |
-    /usr/bin/time  -p sh -c "$exe $args -dim 2D > 2D.gdr"
+    { /usr/bin/time  -p sh -c "$exe $args -dim 2D > 2D.gdr" ; }  2>&1 | paste -sd" " | awk '{print "2D :", $0}' >> timing.dat
 echo "$exe $args  -dim 2D > 2D.gdr"
 echo "A 3D random distribution"
 cat inipos |
-    /usr/bin/time  -p sh -c "$exe $args  -dim 3D > 3D.gdr"
+    { /usr/bin/time  -p sh -c "$exe $args  -dim 3D > 3D.gdr"; }  2>&1 | paste -sd" " | awk '{print "3D :", $0}' >> timing.dat
 
 echo "$exe $args  -dim 3D > 3D.gdr"
