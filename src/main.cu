@@ -74,7 +74,7 @@ using namespace std;
 #include"vector_algebra.cuh"
 #include"utils.cuh"
 #include"config.h"
-#include"input.h"
+#include"inputFast.h"
 #include"rdfGPU.cuh"
 #include"rdfCPU.h"
 #include<iomanip>

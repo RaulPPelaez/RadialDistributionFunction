@@ -1,2 +1,0 @@
-main.o: main.cu vector_algebra.cuh utils.cuh config.h input.h rdfGPU.cuh \
- rdfGPU_kernel.cuh rdf_common.h rdfCPU.h NeighbourListCPU.h
