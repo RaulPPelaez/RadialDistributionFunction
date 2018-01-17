@@ -1,6 +1,6 @@
 
 
-ARCH=52
+ARCH=30
 
 all: main.o
 	mkdir -p ../bin
