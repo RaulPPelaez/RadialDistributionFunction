@@ -1,8 +1,10 @@
 
 
+ARCH=52
+
 all: main.o
 	mkdir -p ../bin
-	nvcc -g -I . -arch=sm_35 -std=c++11 -O3 $^ -o ../bin/rdf
+	nvcc -g -I . -arch=sm_$(ARCH) -std=c++11 -O3 $^ -o ../bin/rdf
 
 depend: .depend
 
@@ -13,5 +15,5 @@ depend: .depend
 include .depend
 
 %.o:%.cu
-	nvcc -g  -I . -arch=sm_35 -std=c++11 -O3 $< -c -o $@
+	nvcc -g  -I . -arch=sm_$(ARCH) -std=c++11 -O3 $< -c -o $@
 
