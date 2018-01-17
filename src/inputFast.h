@@ -1,5 +1,5 @@
 /*Raul P. Pelaez 2017. Contains utility classes/functions to read snapshots from a file
-  This file differs from input.h in the way a line is processed, this uses strtod instead of stringstream, it speeds up the reading process by 300%, which results in an overall speed up of 600% when using GPU (the computations is highly IO bound).
+  This file differs from input.h in the way a line is processed, this uses strtod instead of stringstream, it speeds up the reading process by 300%, which results in an overall speed up of 600% when using GPU (when the computations is highly IO bound, small rcut, high number of particles).
  */
 #ifndef INPUT_H
 #define INPUT_H
@@ -18,10 +18,8 @@ namespace gdr{
   public:
     //Read from stdin by default
     InputParse(){ }
-
     //Take input from cin
     bool open(){
-      //The lambda ensures cin is not deleted
       input = stdin;
       if(feof(input)){
 	cerr<<"ERROR: Unable to read from stdin!"<<endl;
@@ -38,11 +36,12 @@ namespace gdr{
       }
       return true;
     }
-
+    //Is input a readable stream?
+    bool good(){
+      return input != nullptr;
+    }
     //Reads a line from input
     char* goToNextLine(){
-      if(!input) cerr<<"ERROR: No open file!"<<endl;
-
       int nr = getline(&currentLine, &linesize, input);
       return currentLine;
     }
@@ -51,7 +50,7 @@ namespace gdr{
     void parseNextLine(Iterator numbersInLine, int numberColumnsToRead){
       this->goToNextLine();
 
-      //This could be faster
+      //This could be faster using boost::spirit::qi
       char *l1 = currentLine;
       char *l2;
       for(int i=0; i<numberColumnsToRead; i++){
@@ -70,9 +69,12 @@ namespace gdr{
   //Reads an entire frame to the second argument. Meant to be used with real4,real3 or real2
   template<class vecType>
   void readFrame(InputParse &input, vecType *pos, int numberParticles, int nCoordinatesToRead){
-
+    //Check for input file validity
+    if(!input.good()){
+      cerr<<"ERROR: No open file!"<<endl;
+      exit(1);
+    }
     //Ignore frame separator
-
     input.goToNextLine();
     
     for(int i= 0; i<numberParticles; i++){
