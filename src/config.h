@@ -29,7 +29,7 @@ namespace gdr{
     real maxDistance = 0;
     int numberBins = 100;
     int numberSnapshots =-1;
-    string inputFileName;
+    std::string inputFileName;
   };
 
   void print_help();
@@ -61,22 +61,22 @@ namespace gdr{
 	if(strcmp(argv[i+1], "3D")==0)           config.dimension = Configuration::dimensionality::D3;
 	else if(strcmp(argv[i+1], "2D")==0)      config.dimension = Configuration::dimensionality::D2;
 	else if(strcmp(argv[i+1], "q2D")==0)     config.dimension = Configuration::dimensionality::qD2;
-	else{ cerr<<"ERROR: INVALID DIMENSIONALITY IN -dim!!!"<<endl; print_help(); exit(1);}
+	else{ std::cerr<<"ERROR: INVALID DIMENSIONALITY IN -dim!!!"<<std::endl; print_help(); exit(1);}
 
       }
       if(strcmp(argv[i], "-device")==0){
 	if(strcmp(argv[i+1], "GPU")==0)          config.deviceMode = Configuration::device::GPU;
 	else if(strcmp(argv[i+1], "CPU")==0)     config.deviceMode = Configuration::device::CPU;
 	else if(strcmp(argv[i+1], "auto")==0){}
-	else{ cerr<<"ERROR: Selected an invalid device"<<endl; print_help();}
+	else{ std::cerr<<"ERROR: Selected an invalid device"<<std::endl; print_help();}
 	
       }
     
       if(strcmp(argv[i], "-h")==0){ print_help(); exit(0); }
 
     }
-    if(!Lread && !(Lx&&Ly&&Lz)){cerr<<"ERROR!! NO VALID BOX SIZE WAS GIVEN!!"<<endl; print_help(); exit(1);}
-    if(!config.numberParticles){cerr<<"ERROR!! NO VALID NUMBER PARTICLES WAS GIVEN!!"<<endl; print_help(); exit(1);}
+    if(!Lread && !(Lx&&Ly&&Lz)){std::cerr<<"ERROR!! NO VALID BOX SIZE WAS GIVEN!!"<<std::endl; print_help(); exit(1);}
+    if(!config.numberParticles){std::cerr<<"ERROR!! NO VALID NUMBER PARTICLES WAS GIVEN!!"<<std::endl; print_help(); exit(1);}
     if(!Lx||!Ly||!Lz)  L[0] = L[1] = L[2] = Lread;
     else{
       L[0] = Lx;
@@ -90,15 +90,15 @@ namespace gdr{
     if(isatty(STDIN_FILENO)){ //If there is no pipe
       bool good_file = false;
       fori(1,argc){ //exclude the exe file
-	shared_ptr<istream> in = make_shared<ifstream>(argv[i]); //There must be a filename somewhere in the cli
+	std::shared_ptr<std::istream> in = std::make_shared<std::ifstream>(argv[i]); //There must be a filename somewhere in the cli
 	if(in->good()){
 	  good_file = true;
-	  config.inputFileName = string(argv[i]);
+	  config.inputFileName = std::string(argv[i]);
 	  break;	
 	}
 
       }
-      if(!good_file){cout<< "ERROR!, NO INPUT DETECTED!!"<<endl; print_help(); exit(1);}
+      if(!good_file){std::cerr<< "ERROR!, NO INPUT DETECTED!!"<<std::endl; print_help(); exit(1);}
     }
 
 

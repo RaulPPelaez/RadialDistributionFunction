@@ -32,7 +32,7 @@ namespace gdr{
     thrust::device_vector<real4> posGPU;
     thrust::device_vector<ullint> pairDistanceCountGPU;
     int processedSnapshots = 0;
-    shared_ptr<CellList> nl;
+    std::shared_ptr<CellList> nl;
   public:
   
     RadialDistributionFunctionGPU(){}
@@ -78,7 +78,7 @@ namespace gdr{
   //Each time it is called the histogram is summed to the previous one
   template<class vecType>
   void RadialDistributionFunctionGPU::processSnapshot(const vecType *posCPU, const Configuration &config){
-    if(!posCPU){cerr<<"ERROR: position pointer is NULL!! in gdr GPU"<<endl;return; }
+    if(!posCPU){std::cerr<<"ERROR: position pointer is NULL!! in gdr GPU"<<std::endl;return; }
 
     if(posGPU.size() != config.numberParticles) posGPU.resize(config.numberParticles);
     if(pairDistanceCountGPU.size() != config.numberBins) pairDistanceCountGPU.resize(config.numberBins, 0);
@@ -166,7 +166,7 @@ namespace gdr{
 
     
     if(!nl){
-      nl = make_shared<CellList>();
+      nl = std::make_shared<CellList>();
     }
     nl->updateNeighbourList(posGPU, config);
 

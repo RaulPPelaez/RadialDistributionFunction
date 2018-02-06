@@ -99,7 +99,7 @@ namespace gdr{
   //Each time it is called the histogram is summed to the previous one
   template<class vecType>
   void RadialDistributionFunctionCPU::processSnapshot(const vecType *pos, const Configuration &config){
-    if(!pos){cerr<<"ERROR: position pointer is NULL!! in gdr CPU"<<endl;return; }
+    if(!pos){std::cerr<<"ERROR: position pointer is NULL!! in gdr CPU"<<std::endl;return; }
 
     //Lazy initialization of the arrays
     if(pairDistanceCount.size() != config.numberBins) pairDistanceCount.resize(config.numberBins, 0);       

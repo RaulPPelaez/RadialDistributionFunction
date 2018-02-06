@@ -68,7 +68,6 @@ rdf will take the file as 2 snapshots with the positions of 3 particles in 3D.
 #include<iostream>
 #include<memory>
 
-using namespace std;
 
 #define SINGLE_PRECISION
 #include"vector_algebra.cuh"
@@ -79,6 +78,9 @@ using namespace std;
 #include"rdfCPU.h"
 #include<iomanip>
 using namespace gdr;
+using std::cerr;
+using std::endl;
+using std::cout;
 
 template<class vecType>
 void computeWithCPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesToRead);
@@ -112,7 +114,7 @@ int main(int argc, char *argv[]){
 
 
   cerr<<"Computing.."<<endl;
-  cout<<setprecision(config.outputDecimals);
+  cout<<std::setprecision(config.outputDecimals);
   //Select between GPU/CPU implementations
   if(config.deviceMode == Configuration::device::GPU){
     int N = config.numberParticles;
@@ -137,7 +139,7 @@ int main(int argc, char *argv[]){
     double binSize = config.maxDistance/config.numberBins;
     for(int i=0; i<config.numberBins; i++){
       double R = (i+0.5)*binSize;
-      cout<<R<<" "<<rdf[i]<<" "<<std[i]<<endl;
+      std::cout<<R<<" "<<rdf[i]<<" "<<std[i]<<std::endl;
     }
 
   }

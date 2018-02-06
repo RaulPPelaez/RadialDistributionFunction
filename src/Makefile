@@ -1,10 +1,12 @@
 
 
-ARCH=30
+ARCH=52
 
-all: main.o
+#Uncomment if you have boost, it will greatly improve performance
+#USE_BOOST=-DUSE_BOOST
+all: #main.o
 	mkdir -p ../bin
-	nvcc -g -I . -arch=sm_$(ARCH) -std=c++11 -O3 $^ -o ../bin/rdf
+	nvcc -g -I . -arch=sm_$(ARCH) -std=c++11 -O3 main.cu -o ../bin/rdf $(USE_BOOST)
 
 depend: .depend
 
@@ -14,6 +16,6 @@ depend: .depend
 
 include .depend
 
-%.o:%.cu
-	nvcc -g  -I . -arch=sm_$(ARCH) -std=c++11 -O3 $< -c -o $@
+# %.o:%.cu
+# 	nvcc -g  -I . -arch=sm_$(ARCH) -std=c++11 -O3 $(USE_BOOST) $< -c -o $@
 
