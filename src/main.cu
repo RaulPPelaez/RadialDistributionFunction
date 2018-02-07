@@ -82,6 +82,7 @@ using std::cerr;
 using std::endl;
 using std::cout;
 
+void computeWithGPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesPerParticle);
 template<class vecType>
 void computeWithCPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesToRead);
 int main(int argc, char *argv[]){
@@ -117,31 +118,7 @@ int main(int argc, char *argv[]){
   cout<<std::setprecision(config.outputDecimals);
   //Select between GPU/CPU implementations
   if(config.deviceMode == Configuration::device::GPU){
-    int N = config.numberParticles;
-    std::vector<real> rdf(config.numberBins, 0);
-    //Standard deviation
-    std::vector<real> std(config.numberBins, 0);
-    
-    RadialDistributionFunctionGPU rdfComputerGPU;
-    //pos array to read a frame from the file. real4 really improves GPU efficiency 
-    std::vector<real4> pos(N, make_real4(0));
-    
-    for(int i=0; i<config.numberSnapshots; i++){
-      //In 2D the 3rd coordinate is never read and thus is always 0.
-      readFrame(inputParser, pos.data(), N, numberCoordinatesPerParticle);
-
-      rdfComputerGPU.processSnapshot(pos.data(), config);
-    }
-    //Download and normalize rdf
-    rdfComputerGPU.getRadialDistributionFunction(rdf.data(), std.data(), config);
-
-    //Print
-    double binSize = config.maxDistance/config.numberBins;
-    for(int i=0; i<config.numberBins; i++){
-      double R = (i+0.5)*binSize;
-      std::cout<<R<<" "<<rdf[i]<<" "<<std[i]<<std::endl;
-    }
-
+    computeWithGPU(inputParser, config, numberCoordinatesPerParticle);
   }
   else if(config.deviceMode == Configuration::device::CPU){
     computeWithCPU<real3>(inputParser, config, numberCoordinatesPerParticle);
@@ -152,6 +129,34 @@ int main(int argc, char *argv[]){
 }
 
 
+
+void computeWithGPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesPerParticle){
+  int N = config.numberParticles;
+  std::vector<real> rdf(config.numberBins, 0);
+  //Standard deviation
+  std::vector<real> std(config.numberBins, 0);
+    
+  RadialDistributionFunctionGPU rdfComputerGPU;
+  //pos array to read a frame from the file. real4 really improves GPU efficiency 
+  std::vector<real4> pos(N, make_real4(0));
+    
+  for(int i=0; i<config.numberSnapshots; i++){
+    //In 2D the 3rd coordinate is never read and thus is always 0.
+    readFrame(inputParser, pos.data(), N, numberCoordinatesPerParticle);
+
+    rdfComputerGPU.processSnapshot(pos.data(), config);
+  }
+  //Download and normalize rdf
+  rdfComputerGPU.getRadialDistributionFunction(rdf.data(), std.data(), config);
+
+  //Print
+  double binSize = config.maxDistance/config.numberBins;
+  for(int i=0; i<config.numberBins; i++){
+    double R = (i+0.5)*binSize;
+    std::cout<<R<<" "<<rdf[i]<<" "<<std[i]<<std::endl;
+  }
+
+}
 
 template<class vecType>
 void computeWithCPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesPerParticle){
