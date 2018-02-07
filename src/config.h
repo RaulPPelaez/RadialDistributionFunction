@@ -107,11 +107,12 @@ namespace gdr{
 
   
 
-
+#include"gitversion.h"
   void print_help(){
 
     printf(" Raul P. Pelaez 2017.\n");
     printf(" \n");
+    printf("Compiled from git commit: %s\n", GITVERSION);
     printf("NAME \n");
     printf("rdf -  Computes the Radial Distribution Function (RDF) of a group of positions in a file,\n");
     printf(" averages it for all snapshots in the file. \n");
