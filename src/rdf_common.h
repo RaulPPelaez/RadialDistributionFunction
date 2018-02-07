@@ -9,13 +9,8 @@
 
 
 namespace gdr{
-  //Takes an histogram of pair distances and normlized to get the RDF
-  void normalizeRadialDistributionFunction(real *rdf,
-					   real *std, //Standard Deviation
-					   ullint *pairDistanceCount,
-					   const Configuration &config,
-					   int numberProcessedSnapshots //Number of snapshots summed in pairDistanceCount
-					   ){
+  //Computes the conversion (normalization) factor between a pair count and the rdf for each bin
+  void computeCount2rdf(const Configuration &config, double * count2rdf){
     real3 L = config.boxSize;
     int N = config.numberParticles;
     real binSize = config.maxDistance/config.numberBins;
@@ -27,22 +22,18 @@ namespace gdr{
       
     constexpr double countedTwice = 2.0;
       
-    double normalization = numberProcessedSnapshots*countedTwice*prefactor*binSize*N*N/V;
-
+    double normalization = countedTwice*prefactor*binSize*N*N/V;
 
     
     double invNormalization = 1.0/normalization;
     for(int i=0; i<config.numberBins; i++){
       double R = (i+0.5)*binSize;
       double invR =1.0/R;
-      double count2rdf = invR*invNormalization;
-      if(config.dimension == Configuration::dimensionality::D3) count2rdf *= invR;
-      ullint count = pairDistanceCount[i];
-      rdf[i] = count*count2rdf;
-      
-      std[i] = sqrt(count*(1.0-count/pow(N*numberProcessedSnapshots, 2)))*count2rdf;
-
+      double count2rdf_i = invR*invNormalization;
+      if(config.dimension == Configuration::dimensionality::D3) count2rdf_i *= invR;
+      count2rdf[i] = count2rdf_i;
     }
+
   }
 }
 

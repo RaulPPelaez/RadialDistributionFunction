@@ -25,14 +25,18 @@
 #include"NeighbourListGPU.cuh"
 #include<vector>
 #include<thrust/device_vector.h>
+#include<limits>
 
 namespace gdr{
 
   class RadialDistributionFunctionGPU{
     thrust::device_vector<real4> posGPU;
     thrust::device_vector<ullint> pairDistanceCountGPU;
+    thrust::host_vector<ullint> pairDistanceCountCPU;
+    std::vector<real2> rdf_mean_and_var; //Current mean and variance of the rdf
     int processedSnapshots = 0;
     std::shared_ptr<CellList> nl;
+    std::vector<double> count2rdf; //Conversion factor between pairDistanceCount and radial distribution function
   public:
   
     RadialDistributionFunctionGPU(){}
@@ -50,6 +54,7 @@ namespace gdr{
     void getRadialDistributionFunction(real *rdfCPU, real *stdCPU, const Configuration &config);
     void reset(){
       this->processedSnapshots = 0;
+      std::fill(rdf_mean_and_var.begin(), rdf_mean_and_var.end(), real2());
     }
     
   };
@@ -57,12 +62,23 @@ namespace gdr{
 
   //Downloads and normalizes the pair distance histogram to compute the rdf, then overwrites gdrCPU 
   void RadialDistributionFunctionGPU::getRadialDistributionFunction(real *rdfCPU, real *stdCPU, const Configuration &config){
+    /*
     //Downloads pair histogram
-    thrust::host_vector<ullint> countCPU = pairDistanceCountGPU;
+    pairDistanceCountCPU = pairDistanceCountGPU;
    
-    ullint *countCPUPtr=thrust::raw_pointer_cast(countCPU.data());
+    ullint *countCPUPtr=thrust::raw_pointer_cast(pairDistanceCountCPU.data());
     //pair distance count to radial function distribution
     normalizeRadialDistributionFunction(rdfCPU, stdCPU, countCPUPtr, config, this->processedSnapshots);
+    */
+    int T = processedSnapshots;
+
+    for(int i=0; i<config.numberBins; i++){
+      rdfCPU[i] = rdf_mean_and_var[i].x;
+      if(T==1)
+	stdCPU[i] = std::numeric_limits<real>::quiet_NaN();
+      else
+	stdCPU[i] = sqrt(rdf_mean_and_var[i].y/sqrt(T*max(T-1,1)));
+    }
   }
 
   
@@ -81,8 +97,10 @@ namespace gdr{
     if(!posCPU){std::cerr<<"ERROR: position pointer is NULL!! in gdr GPU"<<std::endl;return; }
 
     if(posGPU.size() != config.numberParticles) posGPU.resize(config.numberParticles);
-    if(pairDistanceCountGPU.size() != config.numberBins) pairDistanceCountGPU.resize(config.numberBins, 0);
+    if(pairDistanceCountCPU.size() != config.numberBins) pairDistanceCountCPU.resize(config.numberBins, 0);
 
+    //Reset count GPU
+    pairDistanceCountGPU = pairDistanceCountCPU;
     //Get raw pointers to device memory
     auto posGPUPtr=thrust::raw_pointer_cast(posGPU.data());      
     cudaMemcpy(posGPUPtr, posCPU, config.numberParticles*sizeof(vecType), cudaMemcpyHostToDevice);
@@ -92,13 +110,37 @@ namespace gdr{
     int nx = int(L.x/rcut + 0.5);
     int ny = int(L.y/rcut + 0.5);
     int nz = int(L.z/rcut + 0.5);
-    if(nx<3 && ny<3 && nz<3 && config.numberParticles > 1e4){
+    if(nx<3 || ny<3 || nz<3 || config.numberParticles < 1e4){
       this->computeWithNBody(posGPUPtr, config);
     }
     else{
       this->computeWithNeighbourList(posGPUPtr, config);
     }
 
+
+    //Compute conversion factor if necessary
+    if(count2rdf.size()!=config.numberBins){
+      count2rdf.resize(config.numberBins, 0);
+      computeCount2rdf(config, count2rdf.data());
+    }
+    
+    if(rdf_mean_and_var.size()!= config.numberBins) rdf_mean_and_var.resize(config.numberBins, real2());
+    //Download pair count
+    pairDistanceCountCPU = pairDistanceCountGPU;
+    //Compute mean and variance
+    int time = processedSnapshots;
+    for(int i = 0; i<config.numberBins; i++){
+      //rdf in this snapshot
+      double rdf = pairDistanceCountCPU[i]*count2rdf[i];
+      
+      double mean = rdf_mean_and_var[i].x;
+      
+      rdf_mean_and_var[i].x += (rdf - mean)/double(time + 1); //Update mean
+      rdf_mean_and_var[i].y += time*pow(mean - rdf,2)/double(time+1); //Update variance
+      
+      //Reset count CPU
+      pairDistanceCountCPU[i] = 0;     
+    }
     
     processedSnapshots++;
   }
