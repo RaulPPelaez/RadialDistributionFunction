@@ -60,7 +60,8 @@ rdf [OPTIONS]... [FILE]...
 	
    -outputDecimals [=5]  
 	   Number of decimals in the output file, set through cout<<setprecision()  
-    
+   -fixBIAS
+	   This will weight the distance of a pair in a bin according to the position inside the bin (instead of weighting all distances as 1).  
 
    
    

@@ -11,5 +11,7 @@ test: all
 	$(MAKE) -C test
 
 clean:
-	rm -f bin/rdf src/main.o
 	$(MAKE) -C test clean
+	$(MAKE) -C src clean
+	rm -f bin/rdf src/main.o
+

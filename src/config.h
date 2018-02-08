@@ -30,6 +30,9 @@ namespace gdr{
     int numberBins = 100;
     int numberSnapshots =-1;
     std::string inputFileName;
+
+    //Takes into account that the distances do not have the same weight in a particular bin.
+    bool fixBIAS = false;
   };
 
   void print_help();
@@ -57,6 +60,8 @@ namespace gdr{
       if(strcmp(argv[i], "-nbins")==0)           config.numberBins = atoi(argv[i+1]);
       if(strcmp(argv[i], "-Nsnapshots")==0)      config.numberSnapshots = atoi(argv[i+1]);
       if(strcmp(argv[i], "-outputDecimals")==0)  config.outputDecimals = atoi(argv[i+1]);
+      if(strcmp(argv[i], "-fixBIAS")==0)         config.fixBIAS = true;
+      
       if(strcmp(argv[i], "-dim")==0){
 	if(strcmp(argv[i+1], "3D")==0)           config.dimension = Configuration::dimensionality::D3;
 	else if(strcmp(argv[i+1], "2D")==0)      config.dimension = Configuration::dimensionality::D2;
@@ -155,7 +160,10 @@ namespace gdr{
     printf(" Switch between GPU/CPU implementations of the algorithm. By default rdf chooses the best according to N\n");
     printf(" \n");
     printf(" -outputDecimals [=5] \n");
-    printf(" Number of decimals in the output file, set through cout<<setprecision() \n");
+    printf(" Number of decimals in the output file, set through cout<<setprecision() \n");    
+printf("-fixBIAS\n");
+printf("    This will weight the distance of a pair in a bin according to the position inside the bin (instead of weighting all distances as 1).\n");
+
     printf(" \n");
 
     printf("FILE FORMAT \n");

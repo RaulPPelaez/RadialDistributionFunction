@@ -1,6 +1,6 @@
 
 
-ARCH=52
+ARCH=35
 
 #Uncomment if you have boost, it will greatly improve performance
 #USE_BOOST=-DUSE_BOOST
@@ -12,13 +12,6 @@ gitversion.h: ../.git/HEAD ../.git/index
 	echo "#ifndef GITVERSION" > $@
 	echo "#define GITVERSION \"$(shell git rev-parse HEAD)\"" >> $@
 	echo "#endif" >> $@
-depend: .depend
-
-.depend: main.cu
-	rm -f .depend
-	g++ -MM -xc++ $^ -MF .depend
-
-include .depend
 
 clean:
 	rm -f gitversion.h

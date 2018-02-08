@@ -3,7 +3,7 @@
 EXE=../bin/rdf
 all:
 
-	seq 1 1e7 | awk '{print rand()*10, rand()*10, rand()*10}' > inipos
+	seq 1 1e8 | awk '{print rand()*10, rand()*10, rand()*10}' > inipos
 	echo "CPU: ">>timing.dat
 	bash test.bash $(EXE)  "-device CPU"
 	mkdir -p CPU

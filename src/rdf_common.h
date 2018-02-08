@@ -9,6 +9,10 @@
 
 
 namespace gdr{
+  template<bool fixBinBIAS> struct pairDistanceCounterType;
+  template<> struct pairDistanceCounterType<true >{using type= real;};
+  template<> struct pairDistanceCounterType<false>{using type= ullint;};
+  
   //Computes the conversion (normalization) factor between a pair count and the rdf for each bin
   void computeCount2rdf(const Configuration &config, double * count2rdf){
     real3 L = config.boxSize;

@@ -40,6 +40,12 @@ DESCRIPTION
    -device [=GPU]
        Switch between GPU/CPU implementations of the algorithm. Currently only GPU is implemented	
 
+   -outputDecimals [=5]  
+       Number of decimals in the output file, set through cout<<setprecision() 
+
+   -fixBIAS
+       This will weight the distance of a pair in a bin according to the position inside the bin (instead of weighting all distances as 1).  
+
 FILE FORMAT
    The file must have at least "dim" columns (the rest will be ignored) and each snapshot (including the first)
    must be preceded by a line (no matter the content as long as it is a single line). See example.
@@ -82,8 +88,9 @@ using std::cerr;
 using std::endl;
 using std::cout;
 
+template<bool fixBIAS>
 void computeWithGPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesPerParticle);
-template<class vecType>
+template<class vecType, bool fixBIAS>
 void computeWithCPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesToRead);
 int main(int argc, char *argv[]){
 
@@ -118,10 +125,16 @@ int main(int argc, char *argv[]){
   cout<<std::setprecision(config.outputDecimals);
   //Select between GPU/CPU implementations
   if(config.deviceMode == Configuration::device::GPU){
-    computeWithGPU(inputParser, config, numberCoordinatesPerParticle);
+    if(config.fixBIAS)
+      computeWithGPU<true>(inputParser, config, numberCoordinatesPerParticle);    
+    else
+      computeWithGPU<false>(inputParser, config, numberCoordinatesPerParticle);
   }
   else if(config.deviceMode == Configuration::device::CPU){
-    computeWithCPU<real3>(inputParser, config, numberCoordinatesPerParticle);
+    if(config.fixBIAS)
+      computeWithCPU<real3, true>(inputParser, config, numberCoordinatesPerParticle);
+    else
+      computeWithCPU<real3, false>(inputParser, config, numberCoordinatesPerParticle);
   }
   cerr<<"DONE"<<endl;
   
@@ -130,13 +143,14 @@ int main(int argc, char *argv[]){
 
 
 
+template<bool fixBIAS>
 void computeWithGPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesPerParticle){
   int N = config.numberParticles;
   std::vector<real> rdf(config.numberBins, 0);
   //Standard deviation
   std::vector<real> std(config.numberBins, 0);
     
-  RadialDistributionFunctionGPU rdfComputerGPU;
+  RadialDistributionFunctionGPU<fixBIAS> rdfComputerGPU;
   //pos array to read a frame from the file. real4 really improves GPU efficiency 
   std::vector<real4> pos(N, make_real4(0));
     
@@ -158,7 +172,7 @@ void computeWithGPU(InputParse &inputParser, const Configuration &config, int nu
 
 }
 
-template<class vecType>
+template<class vecType, bool fixBIAS>
 void computeWithCPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesPerParticle){
   int N = config.numberParticles;
 
@@ -166,7 +180,7 @@ void computeWithCPU(InputParse &inputParser, const Configuration &config, int nu
   //Standard deviation
   std::vector<real> std(config.numberBins, 0);
 
-  RadialDistributionFunctionCPU rdfComputerCPU;
+  RadialDistributionFunctionCPU<fixBIAS> rdfComputerCPU;
     
   //pos array to read a frame from the file. real4 really improves GPU efficiency    
   std::vector<vecType> pos(N);

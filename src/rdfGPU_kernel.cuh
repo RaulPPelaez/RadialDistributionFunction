@@ -11,22 +11,20 @@ Contains an NBody pair transverser. Passes through all possible index pairs in p
 
 #include"vector_algebra.cuh"
 #include"utils.cuh"
+
 namespace gdr{
 
   //Goes through all pair of particles in the pos array, O(N^2).
   //With each pair, computes distance and sums 1 to the bin corresponding to that distance.
   /*Reference: Fast N-Body Simulation with CUDA. Chapter 31 of GPU Gems 3*/  
-  template<typename BoxType, typename vectorLoadType>
+template<typename vectorLoadType, class PairCounter>
   __global__ void nBody_rdfKernel(const vectorLoadType* __restrict__ pos,
 				  int numTiles, /*Thread paralellism level, 
 						  controls how many elements are stored in 
 						  shared memory and
 						  computed in parallel between synchronizations*/
 				  uint N,       //Number of particles
-				  BoxType box,  //Box object for PBC, can be Box3D of Box2D
-				  real rcut,    //Maximum distance
-				  real binSize,
-				  ullint* __restrict__ pairDistanceCount
+				    PairCounter pairCounter
 				  ){
     int id = blockIdx.x*blockDim.x+threadIdx.x;
     /*All threads must pass through __syncthreads, 
@@ -62,16 +60,8 @@ namespace gdr{
       for(uint counter = 0; counter<blockDim.x; counter++){
 	if(!active) break; /*An out of bounds thread must be masked*/
 	int cur_j = tile*blockDim.x+counter; 
-	if(cur_j<N && cur_j>id && cur_j != id){/*If the current particle exists, compute and accumulate*/
-	  /*Compute and accumulate the current pair*/
-	  real3 rij = box.apply_pbc(pi - shPos[counter]);
-	  
-	  real r = sqrtf(dot(rij, rij));
-	  if(r<rcut){
-	    int bin = floorf(r/binSize);
-	    atomicAdd(&pairDistanceCount[bin], 2);
-	  }
-	
+if(cur_j<N && cur_j>id && cur_j != id){/*If the current particle exists, compute and accumulate*/
+pairCounter(pi, shPos[counter]);
 	}
       }/*End of particles in tile loop*/
       __syncthreads();
