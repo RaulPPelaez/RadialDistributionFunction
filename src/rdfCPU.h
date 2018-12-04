@@ -21,7 +21,7 @@
 #include"rdf_common.h"
 
 #include<vector>
-#include<thrust/device_vector.h>
+//#include<thrust/device_vector.h>
 #include<limits>
 #include"NeighbourListCPU.h"
 namespace gdr{
@@ -152,7 +152,7 @@ namespace gdr{
 	if(T==1)
 	  std[i] = std::numeric_limits<real>::quiet_NaN();
 	else
-	  std[i] = sqrt(rdf_mean_and_var[i].y)/sqrt(T*max(T-1,1));
+	  std[i] = sqrt(rdf_mean_and_var[i].y)/sqrt(T*std::max(T-1,1));
       
       }
 

@@ -13,17 +13,18 @@ rdf can compute in 4 modes:
 rdf will choose a between GPU/CPU according to the number of particles (unless specified with -device) and will choose NBody/Neighbour list according to the number of particles and the factor L/rcut.  
 ## COMPILE WITH  
 
-```
-$ make
-```
-You may have to change the Makefile to adequate it to the CUDA target architechture, currently set to -arch=sm_35
-
-Use:
-```
-$ make test 
+```bash
+$ mkdir build; cd build; cmake ..; make
 ```
 
-To compile and run several test using random numbers, the resulting rdf will be compared between CPU and GPU implementations. Which should be numerically identical.
+You can specify some options in CMAKE, (use ccmake). For example, set DONT_USE_CUDA to ON to compile in CPU only mode (does not need nvcc).  
+
+You can run some test after compiling with:  
+```
+$ cd test; make test 
+```
+
+This will run several test using random numbers, the resulting rdf will be compared between CPU and GPU implementations. Which should be numerically identical.  
 
 ## SYNOPSYS  
 

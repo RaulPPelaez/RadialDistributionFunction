@@ -1,0 +1,4 @@
+#ifndef GITVERSION_H
+#define GITVERSION_H
+#define GITVERSION @GITCOMMIT@
+#endif

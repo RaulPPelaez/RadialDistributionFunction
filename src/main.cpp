@@ -5,7 +5,11 @@ rdf -  Computes the Radial Distribution Function (RDF) of a group of positions i
 
 COMPILE WITH
 
-$ nvcc  -arch=sm_52 -std=c++11 -O3 rdf.cu
+$ mkdir build; cd build; cmake ..; make
+
+INSTALL WITH
+
+$ make install
 
 SYNOPSYS
 
@@ -80,7 +84,9 @@ rdf will take the file as 2 snapshots with the positions of 3 particles in 3D.
 #include"utils.cuh"
 #include"config.h"
 #include"inputFast.h"
+#ifdef GPUMODE
 #include"rdfGPU.cuh"
+#endif
 #include"rdfCPU.h"
 #include<iomanip>
 using namespace gdr;
@@ -102,8 +108,12 @@ int main(int argc, char *argv[]){
 
   //If device is automatic, use this rule of hand to select which one to use
   if(config.deviceMode == Configuration::device::none){
+#ifdef GPUMODE
     if(config.numberParticles > 500) config.deviceMode = Configuration::device::GPU;
     else config.deviceMode = Configuration::device::CPU;
+#else
+    config.deviceMode = Configuration::device::CPU;
+#endif
   }
   //InputParse handles the transformation of a line from the input file to numbers
   InputParse inputParser;
@@ -145,6 +155,7 @@ int main(int argc, char *argv[]){
 
 template<bool fixBIAS>
 void computeWithGPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesPerParticle){
+  #ifdef GPUMODE
   int N = config.numberParticles;
   std::vector<real> rdf(config.numberBins, 0);
   //Standard deviation
@@ -169,6 +180,10 @@ void computeWithGPU(InputParse &inputParser, const Configuration &config, int nu
     double R = (i+0.5)*binSize;
     std::cout<<R<<" "<<rdf[i]<<" "<<std[i]<<std::endl;
   }
+  #else
+  cerr<<"ERROR: Compiled in CPU mode only"<<endl;
+  exit(1);
+  #endif
 
 }
 

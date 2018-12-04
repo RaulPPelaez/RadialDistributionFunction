@@ -33,7 +33,7 @@ REFERENCES:
 #include"utils.cuh"
 #include<thrust/device_vector.h>
 #include<thrust/host_vector.h>
-#include<third_party/cub/cub.cuh>
+#include"third_party/cub/cub.cuh"
 
 namespace gdr{
   

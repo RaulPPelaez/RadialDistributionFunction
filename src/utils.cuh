@@ -9,6 +9,11 @@
 #define fori(x,y) for(int i=x; i<y; i++)
 #define forj(x,y) for(int j=x; j<y; j++)
 
+#ifdef GPUMODE
+#define HOSTDEVICE __host__ __device__
+#else
+#define HOSTDEVICE
+#endif
 namespace gdr{
   
   //A box that applies PBC on positions, can be created for 2D or 3D using real2 or real3 as template argument
@@ -30,10 +35,10 @@ namespace gdr{
       
     }
 
-    // inline __host__  __device__ void apply_pbc(vecType &r) const{    
+    // inline HOSTDEVICE void apply_pbc(vecType &r) const{    
     //   r -= floorf(r*invBoxSize+real(0.5))*boxSize; //MIC Algorithm
     // }
-    inline __host__  __device__ vecType apply_pbc(const vecType &r) const{    
+    inline HOSTDEVICE vecType apply_pbc(const vecType &r) const{    
       return r - floorf(r*invBoxSize+real(0.5))*boxSize; //MIC Algorithm
     }
 
@@ -42,7 +47,8 @@ namespace gdr{
   typedef Box<real2> Box2D;
 
 
-    struct Grid{
+  struct Grid{
+    Box3D box;
     /*A magic vector that transforms cell coordinates to 1D index when dotted*/
     /*Simply: 1, ncellsx, ncellsx*ncellsy*/
     int3 gridPos2CellIndex;
@@ -50,7 +56,6 @@ namespace gdr{
     int3 cellDim; //ncells in each size
     real3 cellSize;
     real3 invCellSize; /*The inverse of the cell size in each direction*/
-    Box3D box;
     Grid(): Grid(Box3D(), make_int3(0,0,0)){}
     Grid(Box3D box, int3 cellDim):
 	box(box),
@@ -66,7 +71,7 @@ namespace gdr{
 	
     }
     template<class VecType>
-    inline __host__ __device__ int3 getCell(const VecType &r) const{	
+    inline HOSTDEVICE int3 getCell(const VecType &r) const{	
 	// return  int( (p+0.5L)/cellSize )
       int3 cell = make_int3((      box.apply_pbc(make_real3(r)) + real(0.5)*box.boxSize)*invCellSize);
 	//Anti-Traquinazo guard, you need to explicitly handle the case where a particle
@@ -82,11 +87,11 @@ namespace gdr{
 	return cell;
     }
 
-    inline __host__ __device__ int getCellIndex(const int3 &cell) const{
+    inline HOSTDEVICE int getCellIndex(const int3 &cell) const{
 	return dot(cell, gridPos2CellIndex);
     }
 
-    inline __host__  __device__ int3 pbc_cell(const int3 &cell) const{
+    inline HOSTDEVICE int3 pbc_cell(const int3 &cell) const{
 	int3 cellPBC;
 	cellPBC.x = pbc_cell_coord<0>(cell.x);
 	cellPBC.y = pbc_cell_coord<1>(cell.y);
@@ -95,7 +100,7 @@ namespace gdr{
     }
 
     template<int coordinate>
-    inline __host__  __device__ int pbc_cell_coord(int cell) const{
+    inline HOSTDEVICE int pbc_cell_coord(int cell) const{
 	int ncells = 0;
 	if(coordinate == 0){
 	  ncells = cellDim.x;
@@ -114,7 +119,7 @@ namespace gdr{
     }
 
   };
-
+  
 
 
 }

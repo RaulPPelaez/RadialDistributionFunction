@@ -1,6 +1,6 @@
 
 
-EXE=../bin/rdf
+EXE=../build/bin/RadialDistributionFunction
 all:
 
 	seq 1 1e8 | awk '{print rand()*10, rand()*10, rand()*10}' > inipos

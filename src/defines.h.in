@@ -1,0 +1,10 @@
+#ifndef RDFCONFIG_H
+#define RDFCONFIG_H
+#define RadialDistributionFunction_VERSION_MAJOR @RadialDistributionFunction_VERSION_MAJOR@
+#define RadialDistributionFunction_VERSION_MINOR @RadialDistributionFunction_VERSION_MINOR@
+#cmakedefine USE_BOOST
+#cmakedefine USE_CUDA
+#ifdef USE_CUDA
+#define GPUMODE
+#endif
+#endif

@@ -8,6 +8,11 @@
 #include"vector_algebra.cuh"
 #include<unistd.h>
 #include<fstream>
+#include"utils.cuh"
+#include<string.h>
+#include<iostream>
+#include<memory>
+#include"defines.h"
 namespace gdr{
   
   struct Configuration{
@@ -117,14 +122,13 @@ namespace gdr{
 
     printf(" Raul P. Pelaez 2017.\n");
     printf(" \n");
+    printf("RadialDistributionFunction v%s.%s\n",
+	   RadialDistributionFunction_VERSION_MAJOR,
+	   RadialDistributionFunction_VERSION_MINOR);
     printf("Compiled from git commit: %s\n", GITVERSION);
     printf("NAME \n");
     printf("rdf -  Computes the Radial Distribution Function (RDF) of a group of positions in a file,\n");
     printf(" averages it for all snapshots in the file. \n");
-    printf(" \n");
-    printf("COMPILE WITH \n");
-    printf(" \n");
-    printf("$ nvcc  -arch=sm_52 -std=c++11 -O3 rdf.cu \n");
     printf(" \n");
     printf("SYNOPSYS \n");
     printf(" \n");

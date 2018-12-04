@@ -27,17 +27,18 @@ TODO:
 100- Make a better separation between neighbour list and transverse schemes in this file
 100- Improve needsRebuild
  */
-#ifndef CELLLIST_CUH
-#define CELLLIST_CUH
+#ifndef NEIGHBOURLISTGPU_CUH
+#define NEIGHBOURLISTGPU_CUH
 
-#include"ParticleSorter.cuh"
+
 #include"vector_algebra.cuh"
 #include"config.h"
 #include"utils.cuh"
 
+#include"ParticleSorter.cuh"
 #include<thrust/device_vector.h>
 #include<thrust/host_vector.h>
-#include<third_party/cub/cub.cuh>
+#include"third_party/cub/cub.cuh"
 
 #include<limits>
 

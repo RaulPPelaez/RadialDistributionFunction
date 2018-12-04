@@ -1,5 +1,8 @@
 *~
 bin/
 bin/rdf
+build/
 *.o
 *.depend
+defines.h
+gitversion.h

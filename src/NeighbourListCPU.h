@@ -2,6 +2,10 @@
 #ifndef NEIGHBOURLISTCPU_H
 #define NEIGHBOURLISTCPU_H
 
+#include"vector_algebra.cuh"
+#include<vector>
+#include"config.h"
+#include"utils.cuh"
 namespace gdr{
   class NeighbourListCPU{
     std::vector<int> head, list;

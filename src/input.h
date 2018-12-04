@@ -8,11 +8,14 @@
 #include<fstream>
 #include<sstream>
 #include<string>
+#include<memory>
+#include<iostream>
+
 namespace gdr{
     //Reads numbers from a file or standard input line by line
   class InputParse{
-    shared_ptr<istream> input;
-    string currentLine;
+    std::shared_ptr<std::istream> input;
+    std::string currentLine;
   public:
     //Read from stdin by default
     InputParse(){ }
@@ -20,27 +23,27 @@ namespace gdr{
     //Take input from cin
     bool open(){
       //The lambda ensures cin is not deleted
-      input.reset(&cin, [](...){});
+      input.reset(&std::cin, [](...){});
     
       if(!input->good()){
-	cerr<<"ERROR: Unable to read from stdin!"<<endl;
+	std::cerr<<"ERROR: Unable to read from stdin!"<<std::endl;
 	return false;
       }
       return true;
     }
     //Open and read from a file
-    bool open(string fileName){
-      input.reset(new ifstream(fileName.c_str()));
+    bool open(std::string fileName){
+      input.reset(new std::ifstream(fileName.c_str()));
       if(!input->good()){
-	cerr<<"ERROR: Unable to open file!"<<endl;
+	std::cerr<<"ERROR: Unable to open file!"<<std::endl;
 	return false;
       }
       return true;
     }
 
     //Reads a line from input
-    string goToNextLine(){
-      if(!input) cerr<<"ERROR: No open file!"<<endl;
+    std::string goToNextLine(){
+      if(!input) std::cerr<<"ERROR: No open file!"<<std::endl;
       getline(*input, currentLine);
       return currentLine;
     }
@@ -49,7 +52,7 @@ namespace gdr{
     void parseNextLine(Iterator numbersInLine, int numberColumnsToRead){
       this->goToNextLine();
       //This could be faster
-      stringstream ss;
+      std::stringstream ss;
       ss.str(currentLine);
       for(int i=0; i<numberColumnsToRead; i++){
 	ss>>numbersInLine[i];

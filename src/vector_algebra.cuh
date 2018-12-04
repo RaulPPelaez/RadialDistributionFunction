@@ -1,7 +1,38 @@
 /*Raul P. Pelaez 2016. vector types algebra*/
 #ifndef VECTOR_OVERLOADS_H
 #define VECTOR_OVERLOADS_H
+#include"defines.h"
+#ifdef GPUMODE
 #include <cuda_runtime.h>
+#define VECATTR inline __host__ __device__
+#else
+struct double2{double x,y;};
+struct double3{double x,y,z;};
+struct double4{double x,y,z,w;};
+
+struct float2{float x,y;};
+struct float3{float x,y,z;};
+struct float4{float x,y,z,w;};
+
+struct int2{int x,y;};
+struct int3{int x,y,z;};
+struct int4{int x,y,z,w;};
+
+#define VECATTR inline
+VECATTR int2 make_int2(int x, int y){return {x,y};}
+VECATTR int3 make_int3(int x, int y, int z){return {x,y,z};}
+VECATTR int4 make_int4(int x, int y, int z, int w){return {x,y,z,w};}
+
+VECATTR float2 make_float2(float x, float y){return {x,y};}
+VECATTR float3 make_float3(float x, float y, float z){return {x,y,z};}
+VECATTR float4 make_float4(float x, float y, float z, float w){return {x,y,z,w};}
+
+VECATTR double2 make_double2(double x, double y){return {x,y};}
+VECATTR double3 make_double3(double x, double y, double z){return {x,y,z};}
+VECATTR double4 make_double4(double x, double y, double z, double w){return {x,y,z,w};}
+
+
+#endif
 #include <cmath>
 
 #ifndef SINGLE_PRECISION
@@ -20,8 +51,6 @@ typedef unsigned short ushort;
 typedef unsigned int uint;
 typedef unsigned long long int ullint;
 
-
-#define VECATTR inline __host__ __device__
 
 
 
@@ -387,7 +416,6 @@ typedef unsigned long long int ullint;
 #endif
 
   VECATTR real4 make_real4(int4 a){ return make_real4(real(a.x), real(a.y), real(a.z), real(a.w));}
-  VECATTR real4 make_real4(uint4 a){return make_real4(real(a.x), real(a.y), real(a.z), real(a.w));}
 
 
   //////////////////REAL3///////////////////////////
@@ -415,7 +443,7 @@ typedef unsigned long long int ullint;
 
   VECATTR real3 make_real3(real2 a, real z){return make_real3(a.x, a.y, z);}
   VECATTR real3 make_real3(int3 a){ return make_real3(real(a.x), real(a.y), real(a.z));}
-  VECATTR real3 make_real3(uint3 a){return make_real3(real(a.x), real(a.y), real(a.z));}
+
 
   //////////////////REAL2///////////////////////////
 
@@ -432,7 +460,7 @@ typedef unsigned long long int ullint;
   VECATTR real2 make_real2(real2 a){return make_real2(a.x, a.y);}
   VECATTR real2 make_real2(real4 a){return make_real2(a.x, a.y);}
   VECATTR real2 make_real2(int3 a){ return make_real2(real(a.x), real(a.y));}
-  VECATTR real2 make_real2(uint3 a){return make_real2(real(a.x), real(a.y));}
+
 
 
   ////////////////DOUBLE PRECISION//////////////////////
@@ -445,7 +473,7 @@ typedef unsigned long long int ullint;
   VECATTR double4 make_double4(double3 a){return make_double4(a.x, a.y, a.z, 0.0f);}
   VECATTR double4 make_double4(double3 a, double w){return make_double4(a.x, a.y, a.z, w);}
   VECATTR double4 make_double4(int4 a){return make_double4(double(a.x), double(a.y), double(a.z), double(a.w));}
-  VECATTR double4 make_double4(uint4 a){return make_double4(double(a.x), double(a.y), double(a.z), double(a.w));}
+
   VECATTR double4 make_double4(float4 a){return make_double4(double(a.x), double(a.y), double(a.z), double(a.w));}
 
   //////DOUBLE4///////////////
