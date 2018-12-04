@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.8)
 include(CheckLanguage)
 include(CheckCXXCompilerFlag)
 project (RadialDistributionFunction CXX)
-#set( CMAKE_VERBOSE_MAKEFILE on )
+set( CMAKE_VERBOSE_MAKEFILE on )
 set (RadialDistributionFunction_VERSION_MAJOR \"2\")
 set (RadialDistributionFunction_VERSION_MINOR \"0\")
 
@@ -11,13 +11,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 #I want only std=c++11, not c++0x
-#check_cxx_compiler_flag("-std=c++11" HAS_CXX11)
+check_cxx_compiler_flag("-std=c++11" HAS_CXX11)
 if(NOT HAS_CXX11)
   message(FATAL_ERROR "C++ compiler needs to allow c++11 standard")
 endif()
 
 option(USE_BOOST "Use Boost-qi for reading, highly improves reading performance" OFF)
-option(DONT_USE_CUDA "Dont compile in hybrid CPU/GPU mode, requires nvcc" ON)
+option(DONT_USE_CUDA "Dont compile in hybrid CPU/GPU mode, requires nvcc" OFF)
 
 if(NOT DONT_USE_CUDA)
   check_language(CUDA)
