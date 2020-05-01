@@ -14,7 +14,7 @@
 #include<memory>
 #include"defines.h"
 namespace gdr{
-  
+
   struct Configuration{
     enum device{GPU, CPU, none};
     enum dimensionality{D3, D2, qD2};
@@ -22,13 +22,13 @@ namespace gdr{
     dimensionality dimension=D3;
     device deviceMode=none;
 #ifdef SINGLE_PRECISION
-    bool doublePrecision = false; 
+    bool doublePrecision = false;
 #else
     bool doublePrecision = true;
 #endif
 
     int outputDecimals=5;
-    
+
     int numberParticles = -1;
     real3 boxSize = {0,0,0};
     real maxDistance = 0;
@@ -41,12 +41,12 @@ namespace gdr{
   };
 
   void print_help();
-  //Fill config with cli arguments  
+  //Fill config with cli arguments
   void processCommandLineArguments(char *argv[], int argc, Configuration &config){
     double Lread = 0.0;
     double Lx=0, Ly=0, Lz=0;
     double L[3];
-  
+
     fori(0,argc){
       /*With -L you can have one or three numbers*/
       if(strcmp(argv[i], "-L")==0){
@@ -66,7 +66,7 @@ namespace gdr{
       if(strcmp(argv[i], "-Nsnapshots")==0)      config.numberSnapshots = atoi(argv[i+1]);
       if(strcmp(argv[i], "-outputDecimals")==0)  config.outputDecimals = atoi(argv[i+1]);
       if(strcmp(argv[i], "-fixBIAS")==0)         config.fixBIAS = true;
-      
+
       if(strcmp(argv[i], "-dim")==0){
 	if(strcmp(argv[i+1], "3D")==0)           config.dimension = Configuration::dimensionality::D3;
 	else if(strcmp(argv[i+1], "2D")==0)      config.dimension = Configuration::dimensionality::D2;
@@ -79,9 +79,9 @@ namespace gdr{
 	else if(strcmp(argv[i+1], "CPU")==0)     config.deviceMode = Configuration::device::CPU;
 	else if(strcmp(argv[i+1], "auto")==0){}
 	else{ std::cerr<<"ERROR: Selected an invalid device"<<std::endl; print_help();}
-	
+
       }
-    
+
       if(strcmp(argv[i], "-h")==0){ print_help(); exit(0); }
 
     }
@@ -95,7 +95,7 @@ namespace gdr{
     }
 
     config.boxSize = make_real3(L[0], L[1], L[2]);
-  
+
     //Look for a valid input file, in stdin or in a given filename
     if(isatty(STDIN_FILENO)){ //If there is no pipe
       bool good_file = false;
@@ -104,7 +104,7 @@ namespace gdr{
 	if(in->good()){
 	  good_file = true;
 	  config.inputFileName = std::string(argv[i]);
-	  break;	
+	  break;
 	}
 
       }
@@ -112,10 +112,10 @@ namespace gdr{
     }
 
 
-  
+
   }
 
-  
+
 
 #include"gitversion.h"
   void print_help(){
@@ -164,7 +164,7 @@ namespace gdr{
     printf(" Switch between GPU/CPU implementations of the algorithm. By default rdf chooses the best according to N\n");
     printf(" \n");
     printf(" -outputDecimals [=5] \n");
-    printf(" Number of decimals in the output file, set through cout<<setprecision() \n");    
+    printf(" Number of decimals in the output file, set through cout<<setprecision() \n");
 printf("-fixBIAS\n");
 printf("    This will weight the distance of a pair in a bin according to the position inside the bin (instead of weighting all distances as 1).\n");
 

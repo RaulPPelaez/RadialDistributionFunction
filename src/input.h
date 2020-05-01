@@ -24,7 +24,7 @@ namespace gdr{
     bool open(){
       //The lambda ensures cin is not deleted
       input.reset(&std::cin, [](...){});
-    
+
       if(!input->good()){
 	std::cerr<<"ERROR: Unable to read from stdin!"<<std::endl;
 	return false;

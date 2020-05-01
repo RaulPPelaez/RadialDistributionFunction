@@ -21,7 +21,7 @@
 #endif
 
 namespace superIO{
-  
+
 #ifdef USE_BOOST
 
   template<class T>
@@ -58,16 +58,16 @@ namespace superIO{
       T value = T();
       qiparse(line+firstCharacter, line+endCharacter, value);
       readedValues[i] = value;
-    
+
       endCharacter++;
       firstCharacter = endCharacter;
-    
+
     }
     return endCharacter-1;
   }
 
   template<class T>
-  inline int string2numbersSTD(const char *line, int ncols, T *readedValues){  
+  inline int string2numbersSTD(const char *line, int ncols, T *readedValues){
     char *l2;
     const char *l1 = line;
 
@@ -76,11 +76,11 @@ namespace superIO{
     }
 
     return l1-line;
- 
+
   }
 
   template<>
-  inline int string2numbersSTD<int>(const char *line, int ncols, int *readedValues){  
+  inline int string2numbersSTD<int>(const char *line, int ncols, int *readedValues){
     char *l2;
     const char *l1 = line;
 
@@ -89,7 +89,7 @@ namespace superIO{
     }
 
     return l1-line;
- 
+
   }
 
   template<class T>
@@ -100,15 +100,15 @@ namespace superIO{
 #else
     return string2numbersSTD(line, ncols, readedValues);
 #endif
- 
+
   }
 
 #ifdef USE_BOOST
   template <typename T>
   inline bool number2stringBoost(std::string &str, T const& value)
   {
-    std::back_insert_iterator<std::string> sink(str); 
-    return boost::spirit::karma::generate(sink, value); 
+    std::back_insert_iterator<std::string> sink(str);
+    return boost::spirit::karma::generate(sink, value);
   }
 #endif
 
@@ -117,7 +117,7 @@ namespace superIO{
     template<> struct PrecisionFormat<float>{static constexpr auto format = "%.7g";};
     template<> struct PrecisionFormat<double>{static constexpr auto format =  "%.13g";};
   }
-  
+
   template <typename T>
   inline bool number2stringSTD(std::string &str, T const& value){
     static std::string converted;
@@ -157,7 +157,7 @@ namespace superIO{
     bool peekedLine = false;
     char* lastPickedLine;
     int lastPickedLineSize;
-    
+
     inline int readNextChunk(){
       //If it is the last chunk ending return end of file code
       if(lastChunk){
@@ -165,8 +165,8 @@ namespace superIO{
       }
       //If the current buffer does not end in a newline,
       // store the contents of the  current line in the begining of the buffer
-      int currentReadedLineSize = int(endBuffer-current);	
-      
+      int currentReadedLineSize = int(endBuffer-current);
+
       //I need the buffer size to be at least the size of the biggest line. Quite hackable so be careful...
       if(currentReadedLineSize>(READBUFSIZE-100)){
 	READBUFSIZE += 100;
@@ -180,7 +180,7 @@ namespace superIO{
 
       int toread = (READBUFSIZE-currentReadedLineSize);
       for(int i = 0; i<currentReadedLineSize; i++) buf[i] = current[i];
-      
+
       //Read the next chuck
       int readedChars = 0;
       readedChars = read(fileDescriptor, buf.data()+currentReadedLineSize, toread*sizeof(char));
@@ -190,7 +190,7 @@ namespace superIO{
       //If no chunk was read the end of the file was reached
       if(readedChars == 0 || feof(in)){
 	lastChunk = true;
-      }	
+      }
       //<0 means error in read()
       else if(readedChars < 0){
 	return -1;
@@ -257,7 +257,7 @@ namespace superIO{
       //This function is equivalent to this (except for the peek mechanism)
       // static size_t  linesize2 = 0;
       // return getline(&line, &linesize2, in);
-      
+
       //No more lines!
       if(eof()){
 	line = nullptr;
@@ -278,7 +278,7 @@ namespace superIO{
 	constexpr int memchrSize = 500; //memchr does not like big sizes...
 	end = (char*)memchr(current, separator, memchrSize);
 	//If the end of the buffer was reached before finding a newline flag to read more
-	//If the newline was not found after 500 characters, try the next 500 until the end of the buffer is reached.       
+	//If the newline was not found after 500 characters, try the next 500 until the end of the buffer is reached.
 	if(!end){
 	  int counter = 1;
 	  while(!end && (current+counter*memchrSize)<=endBuffer){
@@ -310,8 +310,8 @@ namespace superIO{
       *end ='\0';
       return linesize;
     }
-    
-    
+
+
     inline bool iscomment(const char *line, size_t size, char comment = '#'){
       char firstC = '\0';
       for(uint i=0; i<size; i++)if(!isspace(line[i])){ firstC=line[i]; break;}
@@ -329,10 +329,10 @@ namespace superIO{
 
       buf.resize(size);
       int readedChars = read(fileDescriptor, buf.data()+READBUFSIZE, (size-READBUFSIZE)*sizeof(char));
-      if(size_t(readedChars)<(size-READBUFSIZE)) lastChunk = true;    
+      if(size_t(readedChars)<(size-READBUFSIZE)) lastChunk = true;
       endBuffer += readedChars;
       READBUFSIZE = size;
-    
+
     }
   };
 
@@ -358,7 +358,7 @@ namespace superIO{
     }
     ~superOutputFile(){
       if(currentWriteIndex>0)
-	write_sys_wrapper(fileDescriptor, writeBuf.data(), currentWriteIndex);	    
+	write_sys_wrapper(fileDescriptor, writeBuf.data(), currentWriteIndex);
       if(closeFILEAtDestruction)
 	if(in!=stdin && in != nullptr) fclose(in);
     }
@@ -368,7 +368,7 @@ namespace superIO{
       uint i;
       for(i=0; i<size; i++){
 	if((currentWriteIndex + i) == writeBuf.size()-1) break;
-	writeBuf[currentWriteIndex+i] = str[i];	
+	writeBuf[currentWriteIndex+i] = str[i];
       }
       currentWriteIndex += i;
       if(size_t(currentWriteIndex)==writeBuf.size()-1){
@@ -377,10 +377,10 @@ namespace superIO{
 	write(str+i, size-i);
       }
     }
-  
+
     inline void setWriteBufferSize(size_t size){
       if(size_t(currentWriteIndex)>=size){
-	write_sys_wrapper(fileDescriptor, (const void*)(writeBuf.data()), size_t(currentWriteIndex));	
+	write_sys_wrapper(fileDescriptor, (const void*)(writeBuf.data()), size_t(currentWriteIndex));
 	currentWriteIndex = 0;
       }
       writeBuf.resize(size);
@@ -390,10 +390,10 @@ namespace superIO{
       write_sys_wrapper(fileDescriptor, (const void*)(writeBuf.data()), size_t(currentWriteIndex));
       currentWriteIndex = 0;
     }
-    
+
   private:
     template<class ...T>
-    void write_sys_wrapper(T... args){      
+    void write_sys_wrapper(T... args){
       if(::write(args...)<0){
 	std::cerr<<"ERROR: Could not write to output"<<std::endl; exit(1);
       }

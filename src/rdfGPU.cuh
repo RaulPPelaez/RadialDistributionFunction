@@ -7,10 +7,10 @@
 
   Create with RadialDistributionFunctionGPU rdfComputerGPU;
 
-  call 
+  call
   rdfComputerGPU.processSnapshot for all snapshots just once
 
-  call 
+  call
   rdfComputerGPU.getRadialDistributionFunction anytime you want the last version of the rdf
 
 
@@ -77,7 +77,7 @@ namespace gdr{
     std::shared_ptr<CellList> nl;
     std::vector<double> count2rdf; //Conversion factor between pairDistanceCount and radial distribution function
   public:
-  
+
     RadialDistributionFunctionGPU(){}
 
     //Compute the pair distance histogram (proportional to rdf), meant to be called once per snapshot
@@ -88,7 +88,7 @@ namespace gdr{
       if(posGPU.size() != config.numberParticles) posGPU.resize(config.numberParticles);
       if(pairDistanceCountCPU.size() != config.numberBins) pairDistanceCountCPU.resize(config.numberBins, 0);
       pairDistanceCountGPU = pairDistanceCountCPU;
-      auto posGPUPtr=thrust::raw_pointer_cast(posGPU.data());      
+      auto posGPUPtr=thrust::raw_pointer_cast(posGPU.data());
       cudaMemcpy(posGPUPtr, posCPU, config.numberParticles*sizeof(vecType), cudaMemcpyHostToDevice);
       real rcut = config.maxDistance;
       real3 L = config.boxSize;
@@ -109,11 +109,11 @@ namespace gdr{
       pairDistanceCountCPU = pairDistanceCountGPU;
       int time = processedSnapshots;
       for(int i = 0; i<config.numberBins; i++){
-	double rdf = pairDistanceCountCPU[i]*count2rdf[i];      
-	double mean = rdf_mean_and_var[i].x;      
+	double rdf = pairDistanceCountCPU[i]*count2rdf[i];
+	double mean = rdf_mean_and_var[i].x;
 	rdf_mean_and_var[i].x += (rdf - mean)/double(time + 1);
 	rdf_mean_and_var[i].y += time*pow(mean - rdf,2)/double(time+1);
-	pairDistanceCountCPU[i] = 0;     
+	pairDistanceCountCPU[i] = 0;
       }
       processedSnapshots++;
     }
@@ -134,14 +134,14 @@ namespace gdr{
       int BLOCKSIZE=128;
       int Nthreads = BLOCKSIZE<N?BLOCKSIZE:N;
       int Nblocks  = (N+Nthreads-1)/Nthreads;
-      int numTiles = (N + Nthreads-1)/Nthreads;        
+      int numTiles = (N + Nthreads-1)/Nthreads;
       size_t sharedMemorySize =  Nthreads*(sizeof(vecType));
       nBody_rdfKernel<<<Nblocks, Nthreads, sharedMemorySize>>>(posGPU,
 							       numTiles,
 							       N,
 							       pairCounter);
     }
-    
+
     template<class vecType>
     void computeWithNeighbourList(const vecType *posGPU, const Configuration &config){
       Box3D box(config.boxSize);
@@ -160,7 +160,7 @@ namespace gdr{
 						     config.dimension==Configuration::dimensionality::D3);
       nl->transverseList(pairCounter);
     }
-    
+
     void getRadialDistributionFunction(real *rdfCPU, real *stdCPU, const Configuration &config){
       int T = processedSnapshots;
       for(int i=0; i<config.numberBins; i++){
@@ -171,12 +171,12 @@ namespace gdr{
 	  stdCPU[i] = sqrt(rdf_mean_and_var[i].y)/sqrt(T*max(T-1,1));
       }
     }
-    
+
     void reset(){
       this->processedSnapshots = 0;
       std::fill(rdf_mean_and_var.begin(), rdf_mean_and_var.end(), real2());
     }
-    
+
   };
 }
 

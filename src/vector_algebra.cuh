@@ -139,7 +139,7 @@ typedef unsigned long long int ullint;
     return make_float2(b / a.x,
 		       b / a.y);
   }
-  VECATTR  void operator /=(float2 &a, const float &b){  
+  VECATTR  void operator /=(float2 &a, const float &b){
     a *= 1.0f/b;
   }
 
@@ -259,7 +259,7 @@ typedef unsigned long long int ullint;
 		       b / a.z
 		       );
   }
-  VECATTR  void operator /=(float3 &a, const float &b){  
+  VECATTR  void operator /=(float3 &a, const float &b){
     a *= 1.0f/b;
   }
 
@@ -383,7 +383,7 @@ typedef unsigned long long int ullint;
 		       b / a.z,
 		       b / a.w);
   }
-  VECATTR  void operator /=(float4 &a, const float &b){  
+  VECATTR  void operator /=(float4 &a, const float &b){
     a *= 1.0f/b;
   }
 
@@ -422,7 +422,7 @@ typedef unsigned long long int ullint;
 
 
   VECATTR real3 make_real3(real x, real y, real z){
-#ifdef SINGLE_PRECISION 
+#ifdef SINGLE_PRECISION
     return make_float3(x,y,z);
 #else
     return make_double3(x,y,z);
@@ -449,7 +449,7 @@ typedef unsigned long long int ullint;
 
 
   VECATTR real2 make_real2(real x, real y){
-#ifdef SINGLE_PRECISION 
+#ifdef SINGLE_PRECISION
     return make_float2(x,y);
 #else
     return make_double2(x,y);
@@ -595,7 +595,7 @@ typedef unsigned long long int ullint;
 			b / a.x,
 			b / a.y,
 			b / a.z,
-			b / a.w 
+			b / a.w
 			);
   }
   VECATTR  void operator /=(double4 &a, const double &b){
@@ -744,7 +744,7 @@ typedef unsigned long long int ullint;
 			);
   }
   VECATTR  void operator /=(double3 &a, const double &b){
-  
+
     a *= 1.0/b;
 
   }

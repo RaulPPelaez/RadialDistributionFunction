@@ -25,7 +25,7 @@ namespace gdr{
       in = std::make_shared<superIO::superInputFile>();
       return true;
     }
-  
+
     bool open(std::string fileName){
       in = std::make_shared<superIO::superInputFile>(fileName);
       return true;
@@ -60,7 +60,7 @@ namespace gdr{
       std::cerr<<"ERROR: No open file!"<<std::endl;
       exit(1);
     }
-    input.goToNextLine();    
+    input.goToNextLine();
     for(int i= 0; i<numberParticles; i++){
       input.parseNextLine((real*)&pos[i], nCoordinatesToRead);
     }

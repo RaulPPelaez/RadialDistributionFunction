@@ -17,18 +17,18 @@ namespace gdr{
     bool shouldUse(const Configuration &config){
       if(config.numberParticles<500) return false;
       int3 ncells = make_int3(config.boxSize/config.maxDistance +0.5);
-      if(ncells.x<=3 || ncells.y<=3){	
+      if(ncells.x<=3 || ncells.y<=3){
 	return false;
       }
       else if(config.dimension!=Configuration::dimensionality::D2 && ncells.z<=3){
 	return false;
       }
       return true;
-      
+
     }
     template<class vecType>
     void makeList(vecType *pos, const Configuration &config){
-      
+
       int N = config.numberParticles;
 
       real rcut = config.maxDistance;
@@ -42,7 +42,7 @@ namespace gdr{
       int totalCells = ncells.x*ncells.y*ncells.z+1;
       if(head.size() != totalCells ) head.resize(totalCells);
       if(list.size() != N+1) list.resize(N+1);
-      
+
       std::fill(head.begin(), head.end(), 0);
 
       int icell;   //Cell index in head
@@ -60,7 +60,7 @@ namespace gdr{
 	/*Add particle to head and list (Look in the notes!)*/
 	list[i] = head[icell];
 	head[icell] = i;
-      }    
+      }
 
     }
     template<class PairFunctor, class vectorType>
@@ -113,7 +113,7 @@ namespace gdr{
 	} //End jx
       }//End particle loop
     } //End function
-    
+
   };
 }
 #endif

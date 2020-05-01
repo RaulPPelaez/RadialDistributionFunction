@@ -21,7 +21,7 @@ CellList subdivides the simulation box in cubic cells and uses a hash sort based
 Usage:
 
    See PairForces.cu for a simple example on how to use a NL.
-   Typically transverseList will do a much better job at using the list than asking for it and manually transversing it. But it could be usefull if the list is to be used many times per step. 
+   Typically transverseList will do a much better job at using the list than asking for it and manually transversing it. But it could be usefull if the list is to be used many times per step.
 
 TODO:
 100- Make a better separation between neighbour list and transverse schemes in this file
@@ -44,14 +44,14 @@ TODO:
 
 namespace gdr{
 
-  
+
   //Fill any iterator with the same value. It is much faster than cudaMemset
   template<class T, class OutputIterator>
   __global__ void fillWithGPU(OutputIterator array, T value, int N){
     int id = blockIdx.x*blockDim.x + threadIdx.x;
     if(id>=N) return;
 
-    array[id] = value;	            
+    array[id] = value;
   }
 
   template<class T, class OutputIterator, class Iterator>
@@ -62,10 +62,10 @@ namespace gdr{
     array[i] = value;
   }
 
-  
+
   namespace CellList_ns{
     constexpr int EMPTY_CELL = std::numeric_limits<int>::max();
-    
+
     //sortPos contains the particle position sorted in a way that ensures that all particles in a cell are one after the other
     //You can identify where each cell starts and end by transversing this vector and searching for when the cell of a particle is  different from the previous one
     template<class InputIterator>
@@ -73,13 +73,13 @@ namespace gdr{
 				 int *cellStart, int *cellEnd,
 				 int N, Grid grid){
       /*A thread per particle*/
-      uint id = blockIdx.x*blockDim.x + threadIdx.x;      
+      uint id = blockIdx.x*blockDim.x + threadIdx.x;
       if(id<N){//If my particle is in range
-	
+
 	uint icell, icell2;
 	/*Get my icell*/
 	icell = grid.getCellIndex(grid.getCell(make_real3(sortPos[id])));
-      
+
 	/*Get the previous part.'s icell*/
 	if(id>0){ /*Shared memory target VVV*/
 	  icell2 = grid.getCellIndex(grid.getCell(make_real3(sortPos[id-1])));
@@ -91,20 +91,20 @@ namespace gdr{
 	if(id ==0 || icell != icell2){
 	  //Then my particle is the first of my cell
 	  cellStart[icell] = id;
-	
+
 	  //If my i is the start of a cell, it is also the end of the previous
 	  //Except if I am the first one
 	  if(id>0)
 	    cellEnd[icell2] = id;
 	}
-	//If I am the last particle my cell ends 
-	if(id == N-1) cellEnd[icell] = N;      
+	//If I am the last particle my cell ends
+	if(id == N-1) cellEnd[icell] = N;
       }
 
     }
 
 
-    //Using a transverser, this kernel processes it by providing it every pair of neighbouring particles    
+    //Using a transverser, this kernel processes it by providing it every pair of neighbouring particles
     template<class Transverser, class InputIterator>
     __global__ void transverseCellList(Transverser tr,
   				       InputIterator sortPos,
@@ -115,11 +115,11 @@ namespace gdr{
   				       int N, Grid grid){
       int id = blockIdx.x*blockDim.x + threadIdx.x;
       if(id>=N) return;
-   
+
       const real4 myParticle = sortPos[id];
       int3 cellj;
       const int3 celli = grid.getCell(myParticle);
-      
+
       /**Go through all neighbour cells**/
       //For some reason unroll doesnt help here
       int zi = -1; //For the 2D case
@@ -127,22 +127,22 @@ namespace gdr{
       if(grid.cellDim.z == 1){
   	zi = zf = 0;
       }
-      
+
       for(int x=-1; x<=1; x++){
   	cellj.x = grid.pbc_cell_coord<0>(celli.x + x);
   	for(int z=zi; z<=zf; z++){
   	  cellj.z = grid.pbc_cell_coord<2>(celli.z + z);
   	  for(int y=-1; y<=1; y++){
-  	    cellj.y = grid.pbc_cell_coord<1>(celli.y + y);	      
+  	    cellj.y = grid.pbc_cell_coord<1>(celli.y + y);
   	    const int icell  = grid.getCellIndex(cellj);
-  	    
+
   	    /*Index of the first particle in the cell's list*/
   	    const int firstParticle = cellStart[icell];
   	    if(firstParticle != EMPTY_CELL){ /*Continue only if there are particles in this cell*/
   	      /*Index of the last particle in the cell's list*/
   	      const int lastParticle = cellEnd[icell];
   	      const int nincell = lastParticle-firstParticle;
-  	    
+
   	      for(int j=0; j<nincell; j++){
   		int cur_j = j + firstParticle;// sortedIndex[j+firstParticle];
   		if(cur_j < N && cur_j > id){
@@ -150,7 +150,7 @@ namespace gdr{
   		}//endif
   	      }//endfor
   	    }//endif
-  	  }//endfor y	  
+  	  }//endfor y
   	}//endfor z
       }//endfor x
     }
@@ -158,7 +158,7 @@ namespace gdr{
   }
 
 
-  
+
   class CellList{
   protected:
     thrust::device_vector<int> cellStart, cellEnd;
@@ -168,7 +168,7 @@ namespace gdr{
     ParticleSorter ps;  //hash sort handler
 
     Configuration config;
-  public:    
+  public:
     CellList(){ }
     ~CellList(){ }
 
@@ -181,10 +181,10 @@ namespace gdr{
       int3 cellDim = make_int3(config.boxSize/config.maxDistance + real(0.5));
       if(cellDim.z == 0) cellDim.z = 1;
       Grid grid(Box3D(config.boxSize), cellDim);
-      
+
       int Nthreads=128;
       int Nblocks=numberParticles/Nthreads + ((numberParticles%Nthreads)?1:0);
-      
+
       auto sortPos_ptr = thrust::raw_pointer_cast(sortPos.data());
       auto cellStart_ptr = thrust::raw_pointer_cast(cellStart.data());
       auto cellEnd_ptr = thrust::raw_pointer_cast(cellEnd.data());
@@ -202,28 +202,28 @@ namespace gdr{
     void updateNeighbourList(const vecType *posGPU, const Configuration &config,  cudaStream_t st = 0){
       this->config = config;
       int numberParticles = config.numberParticles;
-      
+
       Box3D box(config.boxSize);
       int3 cellDim = make_int3(config.boxSize/config.maxDistance + real(0.5));
       if(cellDim.z == 0) cellDim.z = 1;
       int ncells = cellDim.x*cellDim.y*cellDim.z;
-      
+
       //Resize if needed
       if(cellStart.size()!= ncells) cellStart.resize(ncells);
       if(cellEnd.size()!= ncells) cellEnd.resize(ncells);
-      
+
       auto cellStart_ptr = thrust::raw_pointer_cast(cellStart.data());
       auto cellEnd_ptr = thrust::raw_pointer_cast(cellEnd.data());
       cub::CountingInputIterator<int> it(0);
-      
+
       int Nthreads=512;
       int Nblocks=ncells/Nthreads + ((ncells%Nthreads)?1:0);
-      
+
       //Reset cellStart
       fillWithGPU<<<Nblocks, Nthreads, 0, st>>>(cellStart_ptr, it,
 						CellList_ns::EMPTY_CELL, ncells);
 
-      
+
       //Sort particle positions by cell morton hash
       ps.updateOrderByCellHash<Sorter::MortonHash>(posGPU,
 						   numberParticles,
@@ -231,9 +231,9 @@ namespace gdr{
 
       //Now the array is sorted by cell hash
       //Reorder the positions to this sorted order
-      sortPos.resize(numberParticles);     
+      sortPos.resize(numberParticles);
       ps.applyCurrentOrder(posGPU, sortPos.begin(), numberParticles, st);
-      
+
       auto sortPos_ptr = thrust::raw_pointer_cast(sortPos.data());
 
       //Fill cell list (cellStart and cellEnd) using the sorted array
@@ -244,9 +244,9 @@ namespace gdr{
        							      cellEnd_ptr,
        							      numberParticles,
        							      grid);
-        
+
     }
-        
+
 
   };
 

@@ -1,5 +1,5 @@
 /* Raul P. Pelaez 2017. ParticleSorter.
-   
+
    A helper class to sort particles according to their positions following a certain rule.
    This rule can be a morton hash, so the particle positions are sorted to follow a Z-order curve, a cell hash, particle ID...
 
@@ -36,9 +36,9 @@ REFERENCES:
 #include"third_party/cub/cub.cuh"
 
 namespace gdr{
-  
+
   namespace Sorter{
-    
+
     struct MortonHash{
       //Interleave a 10 bit number in 32 bits, fill one bit and leave the other 2 as zeros. See [1]
       static inline __host__ __device__ uint encodeMorton(const uint &i){
@@ -53,25 +53,25 @@ namespace gdr{
       /*Fuse three 10 bit numbers in 32 bits, producing a Z order Morton hash*/
       static inline __host__ __device__ uint hash(const int3 &cell, const Grid &grid){
 	return encodeMorton(cell.x) | (encodeMorton(cell.y) << 1) | (encodeMorton(cell.z) << 2);
-      }      
+      }
     };
     //The hash is the cell 1D index, this pattern is better than random for neighbour transverse, but worse than Morton
     struct CellHash{
       static inline __device__ __host__ uint hash(const int3 &cell, const Grid &grid){
 	return cell.x + cell.y*grid.cellDim.x + cell.z*grid.cellDim.x*grid.cellDim.z;
-      }      
+      }
     };
-  
+
     /*Assign a hash to each particle*/
     template<class HashComputer = MortonHash, class InputIterator>
     __global__ void computeHash(InputIterator pos,
 				int* __restrict__ index,
 				uint* __restrict__ hash , int N,
 				Grid grid){
-      const int i = blockIdx.x*blockDim.x + threadIdx.x;  
+      const int i = blockIdx.x*blockDim.x + threadIdx.x;
       if(i>=N) return;
       const real3 p = make_real3(pos[i]);
-    
+
       const int3 cell = grid.getCell(p);
       /*The particleIndex array will be sorted by the hashes, any order will work*/
       const uint ihash = HashComputer::hash(cell, grid);
@@ -81,13 +81,13 @@ namespace gdr{
     }
 
 
-    
+
     /*In case old position is a texture*/
     template<class InputIterator, class OutputIterator>
     __global__ void reorderArray(const InputIterator old,
 				 OutputIterator sorted,
 				 int* __restrict__ pindex, int N){
-      int i = blockIdx.x*blockDim.x + threadIdx.x;   
+      int i = blockIdx.x*blockDim.x + threadIdx.x;
       if(i>=N) return;
       sorted[i] = old[pindex[i]];
     }
@@ -102,9 +102,9 @@ namespace gdr{
     size_t temp_storage_bytes = 0; //Additional storage needed by cub
     thrust::device_vector<int>  original_index;
     thrust::device_vector<int>  index, index_alt;
-    thrust::device_vector<uint> hash, hash_alt; 
+    thrust::device_vector<uint> hash, hash_alt;
     /*Radix sort by key using cub, puts sorted versions of index,hash in index_alt, hash_alt*/
-  public: 
+  public:
     ParticleSorter(){}
     template<class hashType>
     void sortByKey(cub::DoubleBuffer<int> &index,
@@ -114,7 +114,7 @@ namespace gdr{
 
       //This uses the CUB API to perform a radix sort
       //CUB orders by key an array pair and copies them onto another pair
-    
+
       /**Initialize CUB if more temp storage is needed**/
       if(N > temp_storage_num_elements){
 	temp_storage_num_elements = N;
@@ -128,20 +128,20 @@ namespace gdr{
 					N,
 					0, end_bit,
 					st);
-			
+
 	/*Allocate temporary storage*/
 	cudaMalloc(&d_temp_storage, temp_storage_bytes);
       }
 
       /**Perform the Radix sort on the index/hash pair**/
       cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
-				      hash, 
+				      hash,
 				      index,
 				      N,
 				      0, end_bit,
 				      st);
 
-      
+
 
     }
     //Return the most significant bit of an unsigned integral type
@@ -156,14 +156,14 @@ namespace gdr{
 	}
       return 0;
     }
-    
+
     template<class HashType = Sorter::MortonHash, class InputIterator>
     void updateOrderByCellHash(InputIterator pos, int N, Box3D box, int3 cellDim, cudaStream_t st = 0){
       init = true;
       if(hash.size() != N){hash.resize(N); hash_alt.resize(N);}
       if(index.size()!= N){index.resize(N); index_alt.resize(N);}
 
-      
+
       int Nthreads=128;
       int Nblocks=N/Nthreads + ((N%Nthreads)?1:0);
       Grid grid(box, cellDim);
@@ -184,7 +184,7 @@ namespace gdr{
       //Cub just needs this endbit at least
       int maxbit = int(std::log2(maxHash)+0.5)+1;
       maxbit = std::min(maxbit, 32);
-      
+
       this->sortByKey(db_index,
 		      db_hash,
 		      N,
@@ -194,7 +194,7 @@ namespace gdr{
 	index.swap(index_alt);
       if(db_hash.selector)
 	hash.swap(hash_alt);
-      
+
       originalOrderNeedsUpdate = true;
     }
 
@@ -202,30 +202,30 @@ namespace gdr{
     void updateOrderById(int *id, int N, cudaStream_t st = 0){
       int lastN = original_index.size();
       if(lastN != N){
-	original_index.resize(N);	
+	original_index.resize(N);
       }
       cub::CountingInputIterator<int> ci(0);
       thrust::copy(ci, ci+N, original_index.begin());
-      
+
       auto db_index = cub::DoubleBuffer<int>(
 					     thrust::raw_pointer_cast(original_index.data()),
 					     thrust::raw_pointer_cast(index_alt.data()));
       //store current index in hash
 
       //thrust::copy will assume cpu copy if the first argument is a raw pointer
-      
+
       int* d_hash = (int*)thrust::raw_pointer_cast(hash.data());
       cudaMemcpy(d_hash, id, N*sizeof(int), cudaMemcpyDeviceToDevice);
 
       auto db_hash  = cub::DoubleBuffer<int>(
 					     d_hash,
-					     (int*)thrust::raw_pointer_cast(hash_alt.data())); 
+					     (int*)thrust::raw_pointer_cast(hash_alt.data()));
       this->sortByKey(db_index,
 		      db_hash,
 		      N,
 		      st);
 
-      original_index.swap(index_alt);      
+      original_index.swap(index_alt);
     }
     //WARNING: _unsorted and _sorted cannot be aliased!
     template<class InputIterator, class OutputIterator>
@@ -244,7 +244,7 @@ namespace gdr{
     //Get current order keys
     int * getSortedIndexArray(int N){
       int lastN = index.size();
-      
+
       if(lastN != N){
 	cub::CountingInputIterator<int> ci(lastN);
         index.resize(N);
@@ -261,9 +261,9 @@ namespace gdr{
 	this->updateOrderById(id, N, st);
 	originalOrderNeedsUpdate = false;
       }
-      
+
       int lastN = original_index.size();
-      
+
       if(lastN != N){
 	original_index.resize(N);
 	thrust::copy(id, id+(N-lastN), original_index.begin()+lastN);

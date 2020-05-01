@@ -15,7 +15,7 @@
 #define HOSTDEVICE
 #endif
 namespace gdr{
-  
+
   //A box that applies PBC on positions, can be created for 2D or 3D using real2 or real3 as template argument
   template<class vecType>
   struct Box{
@@ -32,13 +32,13 @@ namespace gdr{
     Box(real2 boxSize):
       boxSize(boxSize),
       invBoxSize(make_real2(1.0/boxSize.x, 1.0/boxSize.y)){
-      
+
     }
 
-    // inline HOSTDEVICE void apply_pbc(vecType &r) const{    
+    // inline HOSTDEVICE void apply_pbc(vecType &r) const{
     //   r -= floorf(r*invBoxSize+real(0.5))*boxSize; //MIC Algorithm
     // }
-    inline HOSTDEVICE vecType apply_pbc(const vecType &r) const{    
+    inline HOSTDEVICE vecType apply_pbc(const vecType &r) const{
       return r - floorf(r*invBoxSize+real(0.5))*boxSize; //MIC Algorithm
     }
 
@@ -52,7 +52,7 @@ namespace gdr{
     /*A magic vector that transforms cell coordinates to 1D index when dotted*/
     /*Simply: 1, ncellsx, ncellsx*ncellsy*/
     int3 gridPos2CellIndex;
-    
+
     int3 cellDim; //ncells in each size
     real3 cellSize;
     real3 invCellSize; /*The inverse of the cell size in each direction*/
@@ -64,14 +64,14 @@ namespace gdr{
 	cellSize = box.boxSize/make_real3(cellDim);
 	invCellSize = 1.0/cellSize;
 	if(box.boxSize.z == real(0.0)) invCellSize.z = 0;
-	
+
 	gridPos2CellIndex = make_int3( 1,
 				       cellDim.x,
 				       cellDim.x*cellDim.y);
-	
+
     }
     template<class VecType>
-    inline HOSTDEVICE int3 getCell(const VecType &r) const{	
+    inline HOSTDEVICE int3 getCell(const VecType &r) const{
 	// return  int( (p+0.5L)/cellSize )
       int3 cell = make_int3((      box.apply_pbc(make_real3(r)) + real(0.5)*box.boxSize)*invCellSize);
 	//Anti-Traquinazo guard, you need to explicitly handle the case where a particle
@@ -119,7 +119,7 @@ namespace gdr{
     }
 
   };
-  
+
 
 
 }

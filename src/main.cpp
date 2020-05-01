@@ -1,6 +1,6 @@
 /*Raul P. Pelaez 2017-2020. Radial distribution function
 
-NAME 
+NAME
 rdf -  Computes the Radial Distribution Function (RDF) of a group of positions in a file, averages it for all snapshots in the file.
 
 COMPILE WITH
@@ -17,7 +17,7 @@ rdf [OPTIONS]... [FILE]...
 
 DESCRIPTION
    Compute the Radial Distribution Function.
-   
+
    With no FILE, or when file is - or not specified, reads from standard input.
 
    Required options:
@@ -30,25 +30,25 @@ DESCRIPTION
 
    -rcut
        Maximum distance in the rdf, distances greater than rcut will be ignored.
-   
+
    -nbins
        Number of bins in the position pair histogram (binSize = rcut/nbins)
 
-   -Nsnapshots 
+   -Nsnapshots
        Number of snapshots in the file, a snapshot must be separated from the next with a single line
 
    -dim [=3D]
-       Dimensionality of the input positions. Affects how the histogram is normalized to compute the rdf. 
+       Dimensionality of the input positions. Affects how the histogram is normalized to compute the rdf.
        Can be 3D, 2D or q2D (treat as 3D, but normalize as 2D)
 
    -device [=GPU]
-       Switch between GPU/CPU implementations of the algorithm. Currently only GPU is implemented	
+       Switch between GPU/CPU implementations of the algorithm. Currently only GPU is implemented
 
-   -outputDecimals [=5]  
-       Number of decimals in the output file, set through cout<<setprecision() 
+   -outputDecimals [=5]
+       Number of decimals in the output file, set through cout<<setprecision()
 
    -fixBIAS
-       This will weight the distance of a pair in a bin according to the position inside the bin (instead of weighting all distances as 1).  
+       This will weight the distance of a pair in a bin according to the position inside the bin (instead of weighting all distances as 1).
 
 FILE FORMAT
    The file must have at least "dim" columns (the rest will be ignored) and each snapshot (including the first)
@@ -124,7 +124,7 @@ int main(int argc, char *argv[]){
   cout<<std::setprecision(config.outputDecimals);
   if(config.deviceMode == Configuration::device::GPU){
     if(config.fixBIAS)
-      computeWithGPU<true>(inputParser, config, numberCoordinatesPerParticle);    
+      computeWithGPU<true>(inputParser, config, numberCoordinatesPerParticle);
     else
       computeWithGPU<false>(inputParser, config, numberCoordinatesPerParticle);
   }

@@ -7,10 +7,10 @@
 
   Create with RadialDistributionFunctionCPU rdfComputerCPU;
 
-  call 
+  call
   rdfComputerCPU.processSnapshot for all snapshots just once
 
-  call 
+  call
   rdfComputerCPU.getRadialDistributionFunction anytime you want the last version of the rdf
 
 
@@ -23,9 +23,9 @@
 #include<limits>
 #include"NeighbourListCPU.h"
 namespace gdr{
-  
+
   //A functor for the neighbour list that sums to the histogram the distance between two particles
-  template<class vecType, bool fixBinBIAS>  
+  template<class vecType, bool fixBinBIAS>
   struct DistanceCounter{
     using pairDistanceCountType = typename pairDistanceCounterType<fixBinBIAS>::type;
     const vecType* pos;
@@ -44,9 +44,9 @@ namespace gdr{
       binSize(config.maxDistance/config.numberBins)
     {
 	this->is3D = config.dimension == Configuration::dimensionality::D3;
-	
+
     }
-    
+
     inline void operator()(int index_i, int index_j){
       if(index_i > index_j){
 	real3 rij = box.apply_pbc(make_real3(pos[index_i]) - make_real3(pos[index_j]));
@@ -73,7 +73,7 @@ namespace gdr{
   };
 
   template<bool fixBinBIAS>
-  class RadialDistributionFunctionCPU{    
+  class RadialDistributionFunctionCPU{
     using pairDistanceCountType = typename pairDistanceCounterType<fixBinBIAS>::type;
     std::vector<pairDistanceCountType> pairDistanceCount;
     NeighbourListCPU neighbourList;
@@ -81,7 +81,7 @@ namespace gdr{
     std::vector<real2> rdf_mean_and_var; //Current mean and variance of the rdf
     std::vector<double> count2rdf; //Conversion factor between pairDistanceCount and radial distribution function
   public:
-  
+
     RadialDistributionFunctionCPU(){  }
 
     //Compute the pair distance histogram (proportional to rdf), meant to be called once per snapshot
@@ -89,7 +89,7 @@ namespace gdr{
     template<class vecType>
     void processSnapshot(const vecType *pos, const Configuration &config){
     if(!pos){std::cerr<<"ERROR: position pointer is NULL!! in gdr CPU"<<std::endl;return; }
-    if(pairDistanceCount.size() != config.numberBins) pairDistanceCount.resize(config.numberBins, 0);       
+    if(pairDistanceCount.size() != config.numberBins) pairDistanceCount.resize(config.numberBins, 0);
     DistanceCounter<vecType, fixBinBIAS> distanceCounter(pos, pairDistanceCount.data(), config);
     if(neighbourList.shouldUse(config)){
       neighbourList.makeList(pos, config);
@@ -114,12 +114,12 @@ namespace gdr{
       double mean = rdf_mean_and_var[i].x;
       rdf_mean_and_var[i].x += (rdf - mean)/double(time + 1); //Update mean
       rdf_mean_and_var[i].y += time*pow(mean - rdf,2)/double(time+1); //Update variance
-      pairDistanceCount[i] = 0;     
+      pairDistanceCount[i] = 0;
     }
     processedSnapshots++;
   }
 
-    //Downloads and normalizes the pair distance histogram to compute the rdf, then overwrites gdrCPU 
+    //Downloads and normalizes the pair distance histogram to compute the rdf, then overwrites gdrCPU
     void getRadialDistributionFunction(real *rdf, real *std, const Configuration &config){
       int T = processedSnapshots;
       for(int i=0; i<config.numberBins; i++){
@@ -130,15 +130,15 @@ namespace gdr{
 	  std[i] = sqrt(rdf_mean_and_var[i].y)/sqrt(T*std::max(T-1,1));
       }
     }
-    
+
     void reset(){
       this->processedSnapshots = 0;
     }
-    
+
   };
 
 
-  
 
-  
+
+
 }
