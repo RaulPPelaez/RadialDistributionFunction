@@ -85,16 +85,11 @@ namespace gdr{
     template<class vecType>
     void processSnapshot(const vecType *posCPU, const Configuration &config){
       if(!posCPU){std::cerr<<"ERROR: position pointer is NULL!! in gdr GPU"<<std::endl;return; }
-
       if(posGPU.size() != config.numberParticles) posGPU.resize(config.numberParticles);
       if(pairDistanceCountCPU.size() != config.numberBins) pairDistanceCountCPU.resize(config.numberBins, 0);
-
-      //Reset count GPU
       pairDistanceCountGPU = pairDistanceCountCPU;
-      //Get raw pointers to device memory
       auto posGPUPtr=thrust::raw_pointer_cast(posGPU.data());      
       cudaMemcpy(posGPUPtr, posCPU, config.numberParticles*sizeof(vecType), cudaMemcpyHostToDevice);
-
       real rcut = config.maxDistance;
       real3 L = config.boxSize;
       int nx = int(L.x/rcut + 0.5);
@@ -106,98 +101,68 @@ namespace gdr{
       else{
 	this->computeWithNeighbourList(posGPUPtr, config);
       }
-
-
-      //Compute conversion factor if necessary
       if(count2rdf.size()!=config.numberBins){
 	count2rdf.resize(config.numberBins, 0);
 	computeCount2rdf(config, count2rdf.data());
       }
-    
       if(rdf_mean_and_var.size()!= config.numberBins) rdf_mean_and_var.resize(config.numberBins, real2());
-      //Download pair count
       pairDistanceCountCPU = pairDistanceCountGPU;
-      //Compute mean and variance
       int time = processedSnapshots;
       for(int i = 0; i<config.numberBins; i++){
-	//rdf in this snapshot
-	double rdf = pairDistanceCountCPU[i]*count2rdf[i];
-      
-	double mean = rdf_mean_and_var[i].x;
-      
-	rdf_mean_and_var[i].x += (rdf - mean)/double(time + 1); //Update mean
-	rdf_mean_and_var[i].y += time*pow(mean - rdf,2)/double(time+1); //Update variance
-      
-	//Reset count CPU
+	double rdf = pairDistanceCountCPU[i]*count2rdf[i];      
+	double mean = rdf_mean_and_var[i].x;      
+	rdf_mean_and_var[i].x += (rdf - mean)/double(time + 1);
+	rdf_mean_and_var[i].y += time*pow(mean - rdf,2)/double(time+1);
 	pairDistanceCountCPU[i] = 0;     
       }
-    
       processedSnapshots++;
     }
 
-
     template<class vecType>
     void computeWithNBody(const vecType *posGPU, const Configuration &config){
-      //Recover parameters
       int N = config.numberParticles;
       Box3D box(config.boxSize);
       real rcut = config.maxDistance;
       int numberBins= config.numberBins;
       real binSize = rcut/numberBins;
-
-      //Get raw pointers to device memory
       auto pairDistanceCountGPUPtr=thrust::raw_pointer_cast(pairDistanceCountGPU.data());
-
       PairCounterTransverser<fixBinBIAS> pairCounter(pairDistanceCountGPUPtr,
 						     box,
 						     rcut,
 						     binSize,
 						     config.dimension==Configuration::dimensionality::D3);
-      //Configure and lauch kernel
       int BLOCKSIZE=128;
       int Nthreads = BLOCKSIZE<N?BLOCKSIZE:N;
       int Nblocks  = (N+Nthreads-1)/Nthreads;
       int numTiles = (N + Nthreads-1)/Nthreads;        
-  
       size_t sharedMemorySize =  Nthreads*(sizeof(vecType));
-      
       nBody_rdfKernel<<<Nblocks, Nthreads, sharedMemorySize>>>(posGPU,
 							       numTiles,
 							       N,
 							       pairCounter);
     }
+    
     template<class vecType>
     void computeWithNeighbourList(const vecType *posGPU, const Configuration &config){
-      //Recover parameters
       Box3D box(config.boxSize);
       real rcut = config.maxDistance;
       int numberBins= config.numberBins;
       real binSize = rcut/numberBins;
-
-      //Get raw pointers to device memory    
       auto pairDistanceCountGPUPtr = thrust::raw_pointer_cast(pairDistanceCountGPU.data());
-
-    
       if(!nl){
 	nl = std::make_shared<CellList>();
       }
       nl->updateNeighbourList(posGPU, config);
-
       PairCounterTransverser<fixBinBIAS> pairCounter(pairDistanceCountGPUPtr,
 						     box,
 						     rcut,
 						     binSize,
 						     config.dimension==Configuration::dimensionality::D3);
-				       
-				       
       nl->transverseList(pairCounter);
-
     }
     
-    //Normalizes the pair distance histogram to compute the rdf, then overwrites gdrCPU 
     void getRadialDistributionFunction(real *rdfCPU, real *stdCPU, const Configuration &config){
       int T = processedSnapshots;
-
       for(int i=0; i<config.numberBins; i++){
 	rdfCPU[i] = rdf_mean_and_var[i].x;
 	if(T==1)

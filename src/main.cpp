@@ -1,4 +1,4 @@
-/*Raul P. Pelaez 2017. Radial distribution function
+/*Raul P. Pelaez 2017-2020. Radial distribution function
 
 NAME 
 rdf -  Computes the Radial Distribution Function (RDF) of a group of positions in a file, averages it for all snapshots in the file.
@@ -96,17 +96,13 @@ using std::cout;
 
 template<bool fixBIAS>
 void computeWithGPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesPerParticle);
+
 template<class vecType, bool fixBIAS>
 void computeWithCPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesToRead);
+
 int main(int argc, char *argv[]){
-
-  //Configuration holds all parameters about the input file and gdr that might be needed.
   Configuration config;
-
-  //Fill config with cli arguments
   processCommandLineArguments(argv, argc, config);
-
-  //If device is automatic, use this rule of hand to select which one to use
   if(config.deviceMode == Configuration::device::none){
 #ifdef GPUMODE
     if(config.numberParticles > 500) config.deviceMode = Configuration::device::GPU;
@@ -115,25 +111,17 @@ int main(int argc, char *argv[]){
     config.deviceMode = Configuration::device::CPU;
 #endif
   }
-  //InputParse handles the transformation of a line from the input file to numbers
   InputParse inputParser;
-
-  //If called without arguments, open uses cin
   if(config.inputFileName.empty())
     inputParser.open();
   else
     inputParser.open(config.inputFileName);
-
   int numberCoordinatesPerParticle = 3;
   if(config.dimension == Configuration::dimensionality::D2){
     numberCoordinatesPerParticle = 2;
     config.boxSize.z = 0;
-  }  
-
-
-  cerr<<"Computing.."<<endl;
+  }
   cout<<std::setprecision(config.outputDecimals);
-  //Select between GPU/CPU implementations
   if(config.deviceMode == Configuration::device::GPU){
     if(config.fixBIAS)
       computeWithGPU<true>(inputParser, config, numberCoordinatesPerParticle);    
@@ -146,8 +134,6 @@ int main(int argc, char *argv[]){
     else
       computeWithCPU<real3, false>(inputParser, config, numberCoordinatesPerParticle);
   }
-  cerr<<"DONE"<<endl;
-  
   return 0;
 }
 
@@ -158,61 +144,41 @@ void computeWithGPU(InputParse &inputParser, const Configuration &config, int nu
   #ifdef GPUMODE
   int N = config.numberParticles;
   std::vector<real> rdf(config.numberBins, 0);
-  //Standard deviation
   std::vector<real> std(config.numberBins, 0);
-    
   RadialDistributionFunctionGPU<fixBIAS> rdfComputerGPU;
-  //pos array to read a frame from the file. real4 really improves GPU efficiency 
   std::vector<real4> pos(N, make_real4(0));
-    
   for(int i=0; i<config.numberSnapshots; i++){
-    //In 2D the 3rd coordinate is never read and thus is always 0.
     readFrame(inputParser, pos.data(), N, numberCoordinatesPerParticle);
-
     rdfComputerGPU.processSnapshot(pos.data(), config);
   }
-  //Download and normalize rdf
   rdfComputerGPU.getRadialDistributionFunction(rdf.data(), std.data(), config);
-
-  //Print
   double binSize = config.maxDistance/config.numberBins;
   for(int i=0; i<config.numberBins; i++){
     double R = (i+0.5)*binSize;
-    std::cout<<R<<" "<<rdf[i]<<" "<<std[i]<<std::endl;
+    std::cout<<std::setprecision(2*sizeof(real))<<R<<" "<<rdf[i]<<" "<<std[i]<<std::endl;
   }
   #else
   cerr<<"ERROR: Compiled in CPU mode only"<<endl;
   exit(1);
   #endif
-
 }
 
 template<class vecType, bool fixBIAS>
 void computeWithCPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesPerParticle){
   int N = config.numberParticles;
-
   std::vector<real> rdf(config.numberBins, 0);
-  //Standard deviation
   std::vector<real> std(config.numberBins, 0);
-
   RadialDistributionFunctionCPU<fixBIAS> rdfComputerCPU;
-    
-  //pos array to read a frame from the file. real4 really improves GPU efficiency    
   std::vector<vecType> pos(N);
   memset(pos.data(), 0, N*sizeof(vecType));
   for(int i=0; i<config.numberSnapshots; i++){
-    //In 2D the 3rd coordinate is never read and thus is always 0.
     readFrame(inputParser, pos.data(), N, numberCoordinatesPerParticle);
-
     rdfComputerCPU.processSnapshot(pos.data(), config);
   }
-  //Download and normalize rdf
   rdfComputerCPU.getRadialDistributionFunction(rdf.data(), std.data(), config);
-
-  //Print
   double binSize = config.maxDistance/config.numberBins;
   for(int i=0; i<config.numberBins; i++){
     double R = (i+0.5)*binSize;
-    cout<<R<<" "<<rdf[i]<<" "<<std[i]<<endl;
+    cout<<std::setprecision(2*sizeof(real))<<R<<" "<<rdf[i]<<" "<<std[i]<<endl;
   }
 }

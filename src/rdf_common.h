@@ -7,7 +7,6 @@
 #include"vector_algebra.cuh"
 #include"config.h"
 
-
 namespace gdr{
   template<bool fixBinBIAS> struct pairDistanceCounterType;
   template<> struct pairDistanceCounterType<true >{using type= real;};
@@ -19,16 +18,11 @@ namespace gdr{
     int N = config.numberParticles;
     real binSize = config.maxDistance/config.numberBins;
     double V = L.x*L.y;
-    if(config.dimension==Configuration::dimensionality::D3) V *= L.z;
-      
+    if(config.dimension==Configuration::dimensionality::D3) V *= L.z;      
     double prefactor = M_PI;
-    if(config.dimension==Configuration::dimensionality::D3) prefactor *= 2.0;
-      
-    constexpr double countedTwice = 2.0;
-      
-    double normalization = countedTwice*prefactor*binSize*N*N/V;
-
-    
+    if(config.dimension==Configuration::dimensionality::D3) prefactor *= 2.0;      
+    constexpr double countedTwice = 2.0;     
+    double normalization = countedTwice*prefactor*binSize*N*N/V;    
     double invNormalization = 1.0/normalization;
     for(int i=0; i<config.numberBins; i++){
       double R = (i+0.5)*binSize;

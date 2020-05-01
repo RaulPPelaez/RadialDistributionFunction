@@ -3,13 +3,6 @@
 #ifndef ATOMIC_CUH
 #define ATOMIC_CUH
 
-// namespace gdr{
-//   namespace detail{
-//     template<class T>
-//     __device__ T atomicAdd(T* address, T val){
-//       return ::atomicAdd(address, val);
-//     }
-//     template<>
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 #else
 __device__ double atomicAdd(double* address, double val)
@@ -26,6 +19,5 @@ __device__ double atomicAdd(double* address, double val)
       return __longlong_as_double(old);
     }
 #endif
-//   }
-// }
+
 #endif
