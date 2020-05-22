@@ -1,8 +1,8 @@
 
 
-EXE=../build/bin/RadialDistributionFunction
+EXE=build/bin/rdf
 all:
-
+	mkdir -p build && cd build && cmake ../..  && make; cd -
 	seq 1 1e8 | awk '{print rand()*10, rand()*10, rand()*10}' > inipos
 	echo "CPU: ">>timing.dat
 	bash test.bash $(EXE)  "-device CPU"
