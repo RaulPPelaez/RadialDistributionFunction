@@ -50,6 +50,9 @@ DESCRIPTION
    -fixBIAS
        This will weight the distance of a pair in a bin according to the position inside the bin (instead of weighting all distances as 1).
 
+   -useTypes
+       This option will interpret the fourth (third in 2D) column as particle type and will compute and output a RDF for each type pair (Ntype*(Ntype+1)/2 in total). Each RDF will start with "# typei typej"
+
 FILE FORMAT
    The file must have at least "dim" columns (the rest will be ignored) and each snapshot (including the first)
    must be preceded by a line (no matter the content as long as it is a single line). See example.
@@ -76,8 +79,6 @@ rdf will take the file as 2 snapshots with the positions of 3 particles in 3D.
 
 #include<string>
 #include<iostream>
-#include<memory>
-
 
 #define SINGLE_PRECISION
 #include"vector_algebra.cuh"
@@ -95,90 +96,120 @@ using std::endl;
 using std::cout;
 
 template<bool fixBIAS>
-void computeWithGPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesPerParticle);
+std::vector<real2> computeWithGPU(Configuration config);
 
-template<class vecType, bool fixBIAS>
-void computeWithCPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesToRead);
+template<bool fixBIAS>
+std::vector<real2> computeWithCPU(Configuration config);
+
+std::vector<real2> computeRDF(Configuration config){
+  if(config.deviceMode == Configuration::device::GPU){
+    if(config.fixBIAS)
+      return computeWithGPU<true>(config);
+    else
+      return computeWithGPU<false>(config);
+  }
+  else if(config.deviceMode == Configuration::device::CPU){
+    if(config.fixBIAS)
+      return computeWithCPU<true>(config);
+    else
+      return computeWithCPU<false>(config);
+  }
+  else{
+    cerr<<"Invalid configuration"<<endl;
+    exit(1);
+    return std::vector<real2>();
+  }
+}
+
+int Ntypes;
+void writeRDF(const std::vector<real2> &rdf, Configuration config){
+  cout<<std::setprecision(config.outputDecimals);
+  for(int typei=0; typei<Ntypes; typei++){
+    for(int typej = typei; typej<Ntypes; typej++){
+      std::cout<<"# "<<typei<<" "<<typej<<std::endl;
+      int typeIndex = triangularIndex(typei, typej, Ntypes)*config.numberBins;
+      for(int i=0; i<config.numberBins; i++){
+	double R = binToDistance(i, config);
+	std::cout<<R<<" "<<rdf[typeIndex + i].x<<" "<<rdf[typeIndex + i].y<<std::endl;
+      }
+    }
+  }
+}
+
+Configuration::device chooseDevice(Configuration config){
+  Configuration::device dev = config.deviceMode;
+  if(dev == Configuration::device::none){
+#ifdef GPUMODE
+    if(config.numberParticles > 500) dev = Configuration::device::GPU;
+    else dev = Configuration::device::CPU;
+#else
+    dev = Configuration::device::CPU;
+#endif
+  }
+  return dev;
+}
 
 int main(int argc, char *argv[]){
   Configuration config;
   processCommandLineArguments(argv, argc, config);
-  if(config.deviceMode == Configuration::device::none){
-#ifdef GPUMODE
-    if(config.numberParticles > 500) config.deviceMode = Configuration::device::GPU;
-    else config.deviceMode = Configuration::device::CPU;
-#else
-    config.deviceMode = Configuration::device::CPU;
-#endif
-  }
-  InputParse inputParser;
-  if(config.inputFileName.empty())
-    inputParser.open();
-  else
-    inputParser.open(config.inputFileName);
-  int numberCoordinatesPerParticle = 3;
+  config.deviceMode = chooseDevice(config);
   if(config.dimension == Configuration::dimensionality::D2){
-    numberCoordinatesPerParticle = 2;
     config.boxSize.z = 0;
   }
-  cout<<std::setprecision(config.outputDecimals);
-  if(config.deviceMode == Configuration::device::GPU){
-    if(config.fixBIAS)
-      computeWithGPU<true>(inputParser, config, numberCoordinatesPerParticle);
-    else
-      computeWithGPU<false>(inputParser, config, numberCoordinatesPerParticle);
-  }
-  else if(config.deviceMode == Configuration::device::CPU){
-    if(config.fixBIAS)
-      computeWithCPU<real3, true>(inputParser, config, numberCoordinatesPerParticle);
-    else
-      computeWithCPU<real3, false>(inputParser, config, numberCoordinatesPerParticle);
-  }
+  auto rdf = computeRDF(config);
+  writeRDF(rdf, config);
   return 0;
 }
 
+std::vector<int> countParticlesPerType(const real4* pos, Configuration config){
+  int foundTypes = 1;
+  std::vector<int> numberParticlesPerType(1, 0);
+  for(int i = 0; i<config.numberParticles; i++){
+    int typei = int(pos[i].w + 0.5);
+    if(typei >= foundTypes){
+      foundTypes++;
+      numberParticlesPerType.resize(foundTypes, 0);
+    }
+    numberParticlesPerType[typei]++;
+  }
+  return numberParticlesPerType;
+}
 
+template<class RDFComputer>
+std::vector<real2> computeWith(Configuration config){
+  InputParse inputParser(config.inputFileName);
+  int numberCoordinatesPerParticle = 3;
+  if(config.dimension == Configuration::dimensionality::D2){
+    numberCoordinatesPerParticle = 2;
+  }
+  int N = config.numberParticles;
+  std::vector<real4> pos(N, real4());
+  readFrame(inputParser, pos.data(), N, numberCoordinatesPerParticle + config.useTypes);
+  auto numberParticlesPerType = countParticlesPerType(pos.data(), config);
+  Ntypes = numberParticlesPerType.size();
+  RDFComputer rdfComputer(config, numberParticlesPerType);
+  rdfComputer.processSnapshot(pos.data());
+  for(int i=1; i<config.numberSnapshots; i++){
+    readFrame(inputParser, pos.data(), N, numberCoordinatesPerParticle + config.useTypes);
+    rdfComputer.processSnapshot(pos.data());
+  }
+  auto rdf = rdfComputer.getRadialDistributionFunction();
+  return std::move(rdf);
+}
 
 template<bool fixBIAS>
-void computeWithGPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesPerParticle){
+std::vector<real2> computeWithGPU(Configuration config){
   #ifdef GPUMODE
-  int N = config.numberParticles;
-  std::vector<real> rdf(config.numberBins, 0);
-  std::vector<real> std(config.numberBins, 0);
-  RadialDistributionFunctionGPU<fixBIAS> rdfComputerGPU;
-  std::vector<real4> pos(N, make_real4(0));
-  for(int i=0; i<config.numberSnapshots; i++){
-    readFrame(inputParser, pos.data(), N, numberCoordinatesPerParticle);
-    rdfComputerGPU.processSnapshot(pos.data(), config);
-  }
-  rdfComputerGPU.getRadialDistributionFunction(rdf.data(), std.data(), config);
-  double binSize = config.maxDistance/config.numberBins;
-  for(int i=0; i<config.numberBins; i++){
-    double R = (i+0.5)*binSize;
-    std::cout<<std::setprecision(2*sizeof(real))<<R<<" "<<rdf[i]<<" "<<std[i]<<std::endl;
-  }
+  return std::move(computeWith<RadialDistributionFunctionGPU<fixBIAS>>(config));
   #else
   cerr<<"ERROR: Compiled in CPU mode only"<<endl;
   exit(1);
+  return std::vector<real2>();
   #endif
 }
 
-template<class vecType, bool fixBIAS>
-void computeWithCPU(InputParse &inputParser, const Configuration &config, int numberCoordinatesPerParticle){
-  int N = config.numberParticles;
-  std::vector<real> rdf(config.numberBins, 0);
-  std::vector<real> std(config.numberBins, 0);
-  RadialDistributionFunctionCPU<fixBIAS> rdfComputerCPU;
-  std::vector<vecType> pos(N);
-  memset(pos.data(), 0, N*sizeof(vecType));
-  for(int i=0; i<config.numberSnapshots; i++){
-    readFrame(inputParser, pos.data(), N, numberCoordinatesPerParticle);
-    rdfComputerCPU.processSnapshot(pos.data(), config);
-  }
-  rdfComputerCPU.getRadialDistributionFunction(rdf.data(), std.data(), config);
-  double binSize = config.maxDistance/config.numberBins;
-  for(int i=0; i<config.numberBins; i++){
-    double R = (i+0.5)*binSize;
-    cout<<std::setprecision(2*sizeof(real))<<R<<" "<<rdf[i]<<" "<<std[i]<<endl;
-  }
+template<bool fixBIAS>
+std::vector<real2> computeWithCPU(Configuration config){
+  return std::move(computeWith<RadialDistributionFunctionCPU<fixBIAS>>(config));
 }
+

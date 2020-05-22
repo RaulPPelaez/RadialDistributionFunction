@@ -1,11 +1,8 @@
-/*Raul P. Pelaez 2017. CPU Radial Distribution Function computer
+/*Raul P. Pelaez 2017-2020. CPU Radial Distribution Function computer
 
-  A class that computes rdf on the CPU, can process a snapshot and return the normalized rdf.
-
+  A class that computes rdf on the CPU, can process snapshots and return the normalized rdf.
 
   Usage:
-
-  Create with RadialDistributionFunctionCPU rdfComputerCPU;
 
   call
   rdfComputerCPU.processSnapshot for all snapshots just once
@@ -24,121 +21,132 @@
 #include"NeighbourListCPU.h"
 namespace gdr{
 
-  //A functor for the neighbour list that sums to the histogram the distance between two particles
-  template<class vecType, bool fixBinBIAS>
-  struct DistanceCounter{
-    using pairDistanceCountType = typename pairDistanceCounterType<fixBinBIAS>::type;
-    const vecType* pos;
-    pairDistanceCountType* pairDistanceCount;
-    Box3D box;
-    real rcut;
-    real binSize;
-    bool is3D;
-    DistanceCounter(const vecType* pos,
-		    pairDistanceCountType *pairDistanceCount,
-		    const Configuration &config):
-      pos(pos),
-      pairDistanceCount(pairDistanceCount),
-      box(config.boxSize),
-      rcut(config.maxDistance),
-      binSize(config.maxDistance/config.numberBins)
-    {
-	this->is3D = config.dimension == Configuration::dimensionality::D3;
-
-    }
-
-    inline void operator()(int index_i, int index_j){
-      if(index_i > index_j){
-	real3 rij = box.apply_pbc(make_real3(pos[index_i]) - make_real3(pos[index_j]));
-	real r = sqrtf(dot(rij, rij));
-	if(r<rcut){
-	  int bin=floorf(r/binSize);
-	  if(fixBinBIAS){
-	    const real rbin = (bin+0.5)*binSize;
-	    real norm;
-	    if(is3D){
-	      norm = rbin*rbin/(r*r);
-	    }
-	    else{
-	      norm = rbin/r;
-	    }
-	    pairDistanceCount[bin]+=2.0*norm;
-	  }
-	  else
-	    pairDistanceCount[bin]+=2;
-	}
-      }
-    }
-
-  };
-
   template<bool fixBinBIAS>
   class RadialDistributionFunctionCPU{
     using pairDistanceCountType = typename pairDistanceCounterType<fixBinBIAS>::type;
     std::vector<pairDistanceCountType> pairDistanceCount;
     NeighbourListCPU neighbourList;
     int processedSnapshots = 0;
-    std::vector<real2> rdf_mean_and_var; //Current mean and variance of the rdf
-    std::vector<double> count2rdf; //Conversion factor between pairDistanceCount and radial distribution function
+    std::vector<real2> rdf_mean_and_var;
+    Configuration config;
+    std::vector<int> numberParticlesPerType;
   public:
 
-    RadialDistributionFunctionCPU(){  }
+    RadialDistributionFunctionCPU(Configuration config, std::vector<int> numberParticlesPerType):
+      config(config), numberParticlesPerType(numberParticlesPerType){
+      int Ntypes = numberParticlesPerType.size();
+      int numberRDFs = Ntypes*(Ntypes+1)/2;
+      rdf_mean_and_var.resize(config.numberBins*numberRDFs, real2());
+    }
 
-    //Compute the pair distance histogram (proportional to rdf), meant to be called once per snapshot
-    //Each time it is called the histogram is summed to the previous one
-    template<class vecType>
-    void processSnapshot(const vecType *pos, const Configuration &config){
-    if(!pos){std::cerr<<"ERROR: position pointer is NULL!! in gdr CPU"<<std::endl;return; }
-    if(pairDistanceCount.size() != config.numberBins) pairDistanceCount.resize(config.numberBins, 0);
-    DistanceCounter<vecType, fixBinBIAS> distanceCounter(pos, pairDistanceCount.data(), config);
-    if(neighbourList.shouldUse(config)){
-      neighbourList.makeList(pos, config);
-      neighbourList.transverseList(pos, distanceCounter, config);
+    void processSnapshot(const real4 *pos){
+      resetContainers();
+      computeDistanceCount(pos);
+      updateRDFFromDistanceCount();
+      processedSnapshots++;
     }
-    else{
-      int N = config.numberParticles;
-      for(int i=0; i<N; i++){
-	for(int j=i+1; j<N; j++){
-	  distanceCounter(j,i);
-	}
-      }
-    }
-    if(count2rdf.size()!=config.numberBins){
-      count2rdf.resize(config.numberBins, 0);
-      computeCount2rdf(config, count2rdf.data());
-    }
-    if(rdf_mean_and_var.size()!= config.numberBins) rdf_mean_and_var.resize(config.numberBins, real2());
-    int time = processedSnapshots;
-    for(int i = 0; i<config.numberBins; i++){
-      double rdf = pairDistanceCount[i]*count2rdf[i];
-      double mean = rdf_mean_and_var[i].x;
-      rdf_mean_and_var[i].x += (rdf - mean)/double(time + 1); //Update mean
-      rdf_mean_and_var[i].y += time*pow(mean - rdf,2)/double(time+1); //Update variance
-      pairDistanceCount[i] = 0;
-    }
-    processedSnapshots++;
-  }
 
-    //Downloads and normalizes the pair distance histogram to compute the rdf, then overwrites gdrCPU
-    void getRadialDistributionFunction(real *rdf, real *std, const Configuration &config){
+    std::vector<real2> getRadialDistributionFunction(){
       int T = processedSnapshots;
-      for(int i=0; i<config.numberBins; i++){
-	rdf[i] = rdf_mean_and_var[i].x;
-	if(T==1)
-	  std[i] = std::numeric_limits<real>::quiet_NaN();
-	else
-	  std[i] = sqrt(rdf_mean_and_var[i].y)/sqrt(T*std::max(T-1,1));
-      }
+      std::vector<real2> rdf(rdf_mean_and_var.size());
+      std::transform(rdf_mean_and_var.begin(), rdf_mean_and_var.end(),
+		     rdf.begin(),
+		     [T](real2 avgRDF){
+		       real2 rdf;
+		       rdf.x = avgRDF.x;
+		       if(T == 0){
+			 rdf.y = std::numeric_limits<real>::quiet_NaN();
+		       }
+		       else{
+			 rdf.y = sqrt(avgRDF.y)/sqrt(T*std::max(T-1,1));
+		       }
+		       return rdf;
+		     });
+      return std::move(rdf);
+
     }
 
     void reset(){
       this->processedSnapshots = 0;
     }
 
+  private:
+
+    void resetContainers(){
+      int Ntypes = numberParticlesPerType.size();
+      int numberRDFs = Ntypes*(Ntypes+1)/2;
+      pairDistanceCount.resize(config.numberBins*numberRDFs);
+      std::fill(pairDistanceCount.begin(), pairDistanceCount.end(), 0);
+    }
+
+    void computeDistanceCount(const real4* pos){
+      if(not neighbourList.shouldUse(config)){
+	this->computeWithNBody(pos);
+      }
+      else{
+	this->computeWithNeighbourList(pos);
+      }
+    }
+
+    void updateRDFFromDistanceCount(){
+      int Ntypes = numberParticlesPerType.size();
+      for(int typei = 0; typei < Ntypes; typei++){
+	for(int typej = typei; typej < Ntypes; typej++){
+	  int typeIndex = triangularIndex(typei, typej, Ntypes);
+	  int firstElement = typeIndex*config.numberBins;
+	  updateAverageRDF(&pairDistanceCount[firstElement], &rdf_mean_and_var[firstElement], typei, typej);
+	}
+      }
+    }
+
+    PairCounterTransverser<fixBinBIAS> createPairCounter(){
+      int Ntypes = numberParticlesPerType.size();
+      Box3D box(config.boxSize);
+      real rcut = config.maxDistance;
+      int numberBins= config.numberBins;
+      real binSize = rcut/numberBins;
+      PairCounterTransverser<fixBinBIAS> pairCounter(pairDistanceCount.data(),
+						     Ntypes, config.numberBins,
+						     box,
+						     rcut,
+						     binSize,
+						     config.dimension==Configuration::dimensionality::D3);
+
+      return pairCounter;
+    }
+
+    void computeWithNBody(const real4* pos){
+      auto pairCounter = createPairCounter();
+      int N = config.numberParticles;
+      for(int i=0; i<N; i++){
+	for(int j=i+1; j<N; j++){
+	  pairCounter(pos[j], pos[i]);
+	}
+      }
+    }
+
+    void computeWithNeighbourList(const real4* pos){
+      neighbourList.makeList(pos, config);
+      auto pairCounter = createPairCounter();
+      neighbourList.transverseList(pairCounter, config);
+    }
+
+    void updateAverageRDF(pairDistanceCountType* pairCount, real2 *averageRDF, int typei, int typej){
+      const int time = processedSnapshots;
+      const double prefactor = computeCount2rdf(config);
+      const int Ni = numberParticlesPerType[typei];
+      const int Nj = numberParticlesPerType[typej];
+      for(int i = 0; i < config.numberBins; i++){
+	double R = binToDistance(i, config);
+	double normalization = 2.0*prefactor/(Ni*Nj*R);
+	if(config.dimension == Configuration::dimensionality::D3){
+	  normalization /= R;
+	}
+	double rdf = pairCount[i]*normalization;
+	double mean = averageRDF[i].x;
+	averageRDF[i].x += (rdf - mean)/double(time + 1);
+	averageRDF[i].y += time*pow(mean - rdf,2)/double(time+1);
+      }
+    }
   };
-
-
-
-
-
 }

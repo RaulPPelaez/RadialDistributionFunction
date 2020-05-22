@@ -19,7 +19,18 @@ namespace gdr{
     size_t linesize = 0;
   public:
 
-    InputParse(){ }
+    InputParse(std::string fileName){
+      if(fileName.empty()){
+	open();
+      }
+      else{
+	open(fileName);
+      }
+    }
+
+    InputParse(){
+      open();
+    }
 
     bool open(){
       in = std::make_shared<superIO::superInputFile>();

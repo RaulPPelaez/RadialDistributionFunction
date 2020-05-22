@@ -1,4 +1,4 @@
-/*Raul P. Pelaez 2017. A struct with all neded parameters
+/*Raul P. Pelaez 2017-2020. A struct with all needed parameters
  */
 #ifndef CONFIG_H
 #define CONFIG_H
@@ -7,12 +7,13 @@
 
 #include"vector_algebra.cuh"
 #include<unistd.h>
-#include<fstream>
 #include"utils.cuh"
-#include<string.h>
-#include<iostream>
 #include<memory>
+#include<fstream>
+#include<iostream>
 #include"defines.h"
+#include <cstdio>
+#include <cstring>
 namespace gdr{
 
   struct Configuration{
@@ -38,6 +39,7 @@ namespace gdr{
 
     //Takes into account that the distances do not have the same weight in a particular bin.
     bool fixBIAS = false;
+    bool useTypes = false;
   };
 
   void print_help();
@@ -50,22 +52,23 @@ namespace gdr{
     fori(0,argc){
       /*With -L you can have one or three numbers*/
       if(strcmp(argv[i], "-L")==0){
-	Lx = strtod(argv[i+1], NULL);
+	Lx = strtod(argv[i+1], nullptr);
 	if(argc>i+3){
-	  Ly = strtod(argv[i+2], NULL);
-	  Lz = strtod(argv[i+3], NULL);
+	  Ly = strtod(argv[i+2], nullptr);
+	  Lz = strtod(argv[i+3], nullptr);
 	}
 	if(!Ly || !Lz ) Lread = Lx;
       }
-      if(strcmp(argv[i], "-Lx")==0)              Lx = strtod(argv[i+1], NULL);
-      if(strcmp(argv[i], "-Ly")==0)              Ly = strtod(argv[i+1], NULL);
-      if(strcmp(argv[i], "-Lz")==0)              Lz = strtod(argv[i+1], NULL);
-      if(strcmp(argv[i], "-rcut")==0)            config.maxDistance = strtod(argv[i+1], NULL);
+      if(strcmp(argv[i], "-Lx")==0)              Lx = strtod(argv[i+1], nullptr);
+      if(strcmp(argv[i], "-Ly")==0)              Ly = strtod(argv[i+1], nullptr);
+      if(strcmp(argv[i], "-Lz")==0)              Lz = strtod(argv[i+1], nullptr);
+      if(strcmp(argv[i], "-rcut")==0)            config.maxDistance = strtod(argv[i+1], nullptr);
       if(strcmp(argv[i], "-N")==0)               config.numberParticles = atoi(argv[i+1]);
       if(strcmp(argv[i], "-nbins")==0)           config.numberBins = atoi(argv[i+1]);
       if(strcmp(argv[i], "-Nsnapshots")==0)      config.numberSnapshots = atoi(argv[i+1]);
       if(strcmp(argv[i], "-outputDecimals")==0)  config.outputDecimals = atoi(argv[i+1]);
       if(strcmp(argv[i], "-fixBIAS")==0)         config.fixBIAS = true;
+      if(strcmp(argv[i], "-useTypes")==0)         config.useTypes = true;
 
       if(strcmp(argv[i], "-dim")==0){
 	if(strcmp(argv[i+1], "3D")==0)           config.dimension = Configuration::dimensionality::D3;
@@ -115,12 +118,10 @@ namespace gdr{
 
   }
 
-
-
 #include"gitversion.h"
   void print_help(){
 
-    printf(" Raul P. Pelaez 2017.\n");
+    printf(" Raul P. Pelaez 2017-2020.\n");
     printf(" \n");
     printf("RadialDistributionFunction v%s.%s\n",
 	   RadialDistributionFunction_VERSION_MAJOR,
@@ -167,9 +168,9 @@ namespace gdr{
     printf(" Number of decimals in the output file, set through cout<<setprecision() \n");
 printf("-fixBIAS\n");
 printf("    This will weight the distance of a pair in a bin according to the position inside the bin (instead of weighting all distances as 1).\n");
-
+ printf("   -useTypes\n");
+ printf("       This option will interpret the fourth (third in 2D) column as particle type and will compute and output a RDF for each type pair (Ntype*(Ntype+1)/2 in total). Each RDF will start with \"# typei typej\"\n");
     printf(" \n");
-
     printf("FILE FORMAT \n");
     printf(" The file must have at least \"dim\" columns (the rest will be ignored) and each snapshot (including the first) \n");
     printf(" must be preceded by a line (no matter the content as long as it is a single line). See example. \n");

@@ -1,8 +1,8 @@
-/*Raul P. Pelaez 2017. Some usefull utilities
+/*Raul P. Pelaez 2017-2020. Some useful utilities
 
   Contains a Box struct that can apply PBC to a position
 
- */
+*/
 #ifndef UTILS_CUH
 #define UTILS_CUH
 #include"vector_algebra.cuh"
@@ -21,58 +21,50 @@ namespace gdr{
   struct Box{
     vecType boxSize, invBoxSize;
     Box():Box(make_real3(0)){}
-    //Only compiled in the 3D version
+
     Box(real3 boxSize):
       boxSize(boxSize),
       invBoxSize(make_real3(1.0/boxSize.x, 1.0/boxSize.y, 1.0/boxSize.z)){
       if(boxSize.z==real(0.0))
 	invBoxSize.z = real(0.0);
     }
-    //Only compiled in the 2D version
+
     Box(real2 boxSize):
       boxSize(boxSize),
       invBoxSize(make_real2(1.0/boxSize.x, 1.0/boxSize.y)){
 
     }
 
-    // inline HOSTDEVICE void apply_pbc(vecType &r) const{
-    //   r -= floorf(r*invBoxSize+real(0.5))*boxSize; //MIC Algorithm
-    // }
     inline HOSTDEVICE vecType apply_pbc(const vecType &r) const{
       return r - floorf(r*invBoxSize+real(0.5))*boxSize; //MIC Algorithm
     }
 
   };
-  typedef Box<real3> Box3D;
-  typedef Box<real2> Box2D;
 
+  typedef Box<real3> Box3D;
+
+  typedef Box<real2> Box2D;
 
   struct Grid{
     Box3D box;
-    /*A magic vector that transforms cell coordinates to 1D index when dotted*/
-    /*Simply: 1, ncellsx, ncellsx*ncellsy*/
     int3 gridPos2CellIndex;
-
-    int3 cellDim; //ncells in each size
+    int3 cellDim;
     real3 cellSize;
-    real3 invCellSize; /*The inverse of the cell size in each direction*/
+    real3 invCellSize;
     Grid(): Grid(Box3D(), make_int3(0,0,0)){}
+
     Grid(Box3D box, int3 cellDim):
 	box(box),
 	cellDim(cellDim){
-
 	cellSize = box.boxSize/make_real3(cellDim);
 	invCellSize = 1.0/cellSize;
 	if(box.boxSize.z == real(0.0)) invCellSize.z = 0;
-
-	gridPos2CellIndex = make_int3( 1,
-				       cellDim.x,
-				       cellDim.x*cellDim.y);
+	gridPos2CellIndex = make_int3(1, cellDim.x, cellDim.x*cellDim.y);
 
     }
+
     template<class VecType>
     inline HOSTDEVICE int3 getCell(const VecType &r) const{
-	// return  int( (p+0.5L)/cellSize )
       int3 cell = make_int3((      box.apply_pbc(make_real3(r)) + real(0.5)*box.boxSize)*invCellSize);
 	//Anti-Traquinazo guard, you need to explicitly handle the case where a particle
 	// is exactly at the box limit, AKA -L/2. This is due to the precision loss when
@@ -88,7 +80,7 @@ namespace gdr{
     }
 
     inline HOSTDEVICE int getCellIndex(const int3 &cell) const{
-	return dot(cell, gridPos2CellIndex);
+      return dot(cell, gridPos2CellIndex);
     }
 
     inline HOSTDEVICE int3 pbc_cell(const int3 &cell) const{
@@ -112,7 +104,6 @@ namespace gdr{
 	if(coordinate == 2){
 	  ncells = cellDim.z;
 	}
-
 	if(cell <= -1) cell += ncells;
 	else if(cell >= ncells) cell -= ncells;
 	return cell;

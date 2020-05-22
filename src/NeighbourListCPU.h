@@ -1,19 +1,22 @@
-
+/* Raul P. Pelaez 2017-2020. Neighbour list for the CPU.
+   This file implements the head and list cell list algorithm.
+ */
 #ifndef NEIGHBOURLISTCPU_H
 #define NEIGHBOURLISTCPU_H
 
 #include"vector_algebra.cuh"
+#include <algorithm>
 #include<vector>
 #include"config.h"
 #include"utils.cuh"
 namespace gdr{
   class NeighbourListCPU{
     std::vector<int> head, list;
+    std::vector<real4> storedPos;
     int3 numberCells;
   public:
     NeighbourListCPU(){}
-    //You should not create a cell list with less than 3 cells per dimension
-    //Or with too little particles
+
     bool shouldUse(const Configuration &config){
       if(config.numberParticles<500) return false;
       int3 ncells = make_int3(config.boxSize/config.maxDistance +0.5);
@@ -24,96 +27,64 @@ namespace gdr{
 	return false;
       }
       return true;
-
     }
-    template<class vecType>
-    void makeList(vecType *pos, const Configuration &config){
 
-      int N = config.numberParticles;
-
+    template<class Iterator>
+    void makeList(Iterator pos, const Configuration &config){
+      int numberParticles = config.numberParticles;
+      storedPos.resize(numberParticles);
+      std::copy(pos, pos + numberParticles, storedPos.begin());
       real rcut = config.maxDistance;
-
       Box3D box(config.boxSize);
-
       int3 ncells = make_int3(config.boxSize/rcut +0.5);
       if(ncells.z==0) ncells.z= 1;
       Grid grid(box, ncells);
       this->numberCells = ncells;
       int totalCells = ncells.x*ncells.y*ncells.z+1;
       if(head.size() != totalCells ) head.resize(totalCells);
-      if(list.size() != N+1) list.resize(N+1);
-
+      if(list.size() != numberParticles+1) list.resize(numberParticles+1);
       std::fill(head.begin(), head.end(), 0);
-
-      int icell;   //Cell index in head
-      real3 temppos; //position of a particle, we dont apply PBC to pos variable
-      /*For every particle in the system (carefull with the indices!)*/
-      //We go from 1 to N, but address the particles as 0 to N-1.
-      for(int i=1; i<=N; i++){
-	/*Save the (i-1)th position to tempos*/
-	temppos =   box.apply_pbc(make_real3(pos[i-1]));
-	/*And reduce it to the primary box*/
-
-	/*Compute the cell coordinates of particle i-1, see getcell below!*/
-	/*Compute the head index of cell[] (Look in the notes!)*/
+      int icell;
+      real3 temppos;
+      for(int i=1; i<=numberParticles; i++){
+	temppos =   box.apply_pbc(make_real3(storedPos[i-1]));
 	icell = grid.getCellIndex(grid.getCell(temppos));
-	/*Add particle to head and list (Look in the notes!)*/
 	list[i] = head[icell];
 	head[icell] = i;
       }
-
     }
-    template<class PairFunctor, class vectorType>
-    void transverseList(const vectorType* pos, PairFunctor &transverser, const Configuration &config){
-      int N = config.numberParticles;
+
+    template<class PairFunctor>
+    void transverseList(PairFunctor &transverser, const Configuration &config){
+      int numberParticles = config.numberParticles;
       Box3D box(config.boxSize);
       Grid grid(box, numberCells);
-      for(int i=0; i<N;i++){
-	/*Save the index particle position*/
-	real3 posindex;//Temporal position storage
-	/*Get it to the primary box*/
-	posindex =  box.apply_pbc(make_real3(pos[i]));
-
-
-	int3 cell;   //Cell coordinates of the index particle
+      for(int i=0; i<numberParticles;i++){
+	real3 posindex;
+	posindex =  box.apply_pbc(make_real3(storedPos[i]));
+	int3 cell;
 	cell = grid.getCell(posindex);
-
-	int j; //Index of neighbour particle
-	int jcel, jcelx, jcely, jcelz; //cell coordinates and cell index for particle j
-	int maxZcell = cell.z+1;
-	int minZcell = cell.z-1;
-	if(config.dimension==Configuration::dimensionality::D2){
-	  maxZcell = minZcell = 1;
+	int j;
+	bool is2D = config.dimension==Configuration::dimensionality::D2;
+	const int nneighbours = is2D?9:27;
+	for(int ic=0; ic<nneighbours; ic++){
+	  int3 cellj = cell;
+	  cellj.x += ic%3-1;
+	  cellj.y += (ic/3)%3-1;
+	  cellj.z =  is2D?0:(cell.z + ic/9-1);
+	  cellj = grid.pbc_cell(cellj);
+	  int jcel = grid.getCellIndex(cellj);
+	  j = head[jcel];
+	  if(j==0) continue;
+	  do{
+	    if(i < (j-1)){
+	      transverser(storedPos[i], storedPos[j-1]);
+	    }
+	    j = list[j];
+	  }while(j!=0);
 	}
-	/*For every neighbouring cell (26 cells in 3D)*/
-	for(int jz=minZcell; jz<=maxZcell;jz++){
-	  /*The neighbour cell must take into account pbc! (see pbc_cells!)*/
-	  jcelz = grid.pbc_cell_coord<2>(jz);
-	  for(int jx=cell.x-1; jx<=cell.x+1;jx++){
-	    jcelx = grid.pbc_cell_coord<0>(jx);
-	    for(int jy=cell.y-1; jy<=cell.y+1;jy++){
-	      jcely = grid.pbc_cell_coord<1>(jy);
-	      //See getcell!
-	      jcel = grid.getCellIndex(make_int3(jcelx, jcely, jcelz));
-	      /*Get the highest index particle in cell jcel*/
-	      j = head[jcel];
-	      /*If there is no particles go to the next cell*/
-	      if(j==0) continue;
-	      /*Use list to travel through all the particles, j, in cell jcel*/
-	      do{
-		/*Add the energy of the pair interaction*/
-		//Be careful not to compute one particle with itself!, j-1 because of head and list indexes!
-		if(i!=(j-1))
-		  transverser(i, j-1);
-		j=list[j];
-		/*When j=0 (list[j] = 0) then there is no more particles in cell jcel (see the notes!)*/
-	      }while(j!=0);
-	    } //End jz
-	  } //End jy
-	} //End jx
-      }//End particle loop
-    } //End function
-
+      }
+    }
   };
 }
 #endif
