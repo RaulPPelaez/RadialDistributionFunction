@@ -63,6 +63,8 @@ rdf [OPTIONS]... [FILE]...
 	   Number of decimals in the output file, set through cout<<setprecision()  
    -fixBIAS
 	   This will weight the distance of a pair in a bin according to the position inside the bin (instead of weighting all distances as 1).  
+   -useTypes
+       This option will interpret the fourth (third in 2D) column as particle type and will compute and output a RDF for each type pair (Ntype*(Ntype+1)/2 in total). Each RDF will start with "# typei typej"
 
    
    
