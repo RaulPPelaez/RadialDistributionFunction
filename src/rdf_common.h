@@ -49,8 +49,10 @@ namespace gdr{
       if(r < rcut){
 	int ti = pi.w;
 	int tj = pj.w;
-	int typeIndex = triangularIndex(ti, tj, ntypes);
-	addDistance(r, typeIndex);
+	if(ti>=tj){
+	  int typeIndex = triangularIndex(ti, tj, ntypes);
+	  addDistance(r, typeIndex);
+	}
       }
     }
 
