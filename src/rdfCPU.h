@@ -103,8 +103,7 @@ namespace gdr{
       int Ntypes = numberParticlesPerType.size();
       Box3D box(config.boxSize);
       real rcut = config.maxDistance;
-      int numberBins= config.numberBins;
-      real binSize = rcut/numberBins;
+      real binSize = rcut/double(config.numberBins);
       PairCounterTransverser<fixBinBIAS> pairCounter(pairDistanceCount.data(),
 						     Ntypes, config.numberBins,
 						     box,

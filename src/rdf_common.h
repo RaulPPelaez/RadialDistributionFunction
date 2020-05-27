@@ -67,7 +67,8 @@ namespace gdr{
     }
 
     HOSTDEVICE void addDistance(real r, int typeIndex){
-      const int bin = floorf(r/binSize);
+      int bin = int(r/binSize);
+      bin = (bin>=nbins)?(nbins-1):bin;
       const int indexInCounter = bin + nbins*typeIndex;
       if(fixBinBIAS){
 	const real rbin = (bin + 0.5)*binSize;
