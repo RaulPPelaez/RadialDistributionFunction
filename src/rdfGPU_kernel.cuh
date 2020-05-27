@@ -42,7 +42,7 @@ namespace gdr{
       for(uint counter = 0; counter<blockDim.x; counter++){
 	if(!active) break;
 	int cur_j = tile*blockDim.x+counter;
-	if(cur_j<N && cur_j>id && cur_j != id){
+	if(cur_j<N && cur_j>id){
 	  pairCounter(pi, shPos[counter]);
 	}
       }
