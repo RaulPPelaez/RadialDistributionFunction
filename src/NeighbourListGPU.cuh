@@ -11,7 +11,7 @@
 #include"ParticleSorter.cuh"
 #include<thrust/device_vector.h>
 #include<thrust/host_vector.h>
-#include"third_party/cub/cub.cuh"
+#include"cub/cub.cuh"
 
 #include<limits>
 
